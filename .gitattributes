@@ -1,0 +1,5 @@
+# 줄 끝은 저장소에서 LF로 통일 (셸 스크립트는 LF여야 실행됨)
+* text=auto eol=lf
+*.png binary
+*.jpg binary
+*.webp binary

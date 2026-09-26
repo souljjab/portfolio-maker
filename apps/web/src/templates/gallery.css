@@ -1,0 +1,54 @@
+/* 갤러리: 작품 한 점씩, 이미지가 화면을 차지. 글은 작고 조용하게. */
+.pf-gallery {
+  --gl-gutter: clamp(0.75rem, 3cqi, 2.5rem);
+  --gl-gap: clamp(calc(var(--space-section) * 0.5), 10cqi, var(--space-section));
+
+  & .gl-wrap { max-width: 96rem; margin-inline: auto; padding-inline: var(--gl-gutter); }
+
+  & .gl-top {
+    display: flex; justify-content: space-between; gap: 1rem;
+    padding-block: calc(var(--space-unit) * 2);
+    font-size: var(--fs-n1); color: var(--c-muted);
+  }
+
+  /* 첫 화면은 짧게 — 바로 작품으로 */
+  & .gl-hero { padding-block: calc(var(--space-unit) * 4) calc(var(--space-unit) * 6); }
+  & .gl-hero h1 { font-family: var(--f-display); font-size: var(--fs-2); font-weight: 600; letter-spacing: -0.01em; }
+  & .gl-headline { margin-top: calc(var(--space-unit) * 0.5); max-width: 32em; color: var(--c-muted); }
+
+  /* 작품: 화면 폭을 채우는 큰 이미지 + 작은 설명 */
+  & .gl-works { display: grid; gap: var(--gl-gap); padding-bottom: var(--gl-gap); }
+  & .gl-work .pf-cover { aspect-ratio: 3 / 2; border-radius: var(--radius-sm); }
+  & .gl-cap {
+    display: grid; grid-template-columns: auto minmax(0, 1fr); column-gap: 1em; align-items: baseline;
+    margin-top: calc(var(--space-unit) * 1.5);
+  }
+  & .gl-no { font-size: var(--fs-n1); color: var(--c-muted); font-variant-numeric: tabular-nums; }
+  & .gl-cap h3 { font-size: var(--fs-1); font-weight: 600; }
+  & .gl-meta { grid-column: 2; font-size: var(--fs-n1); color: var(--c-muted); }
+  & .gl-summary { margin-top: calc(var(--space-unit) * 0.5); margin-left: calc(2ch + 1em); max-width: 36em; font-size: var(--fs-n1); color: var(--c-muted); }
+
+  /* 소개·연락: 작게, 라벨 + 내용 두 칸 */
+  & .gl-info {
+    display: grid; gap: var(--space-unit);
+    padding-block: calc(var(--space-unit) * 4);
+    border-top: 1px solid color-mix(in srgb, var(--c-text) 14%, transparent);
+    & h2 { font-size: var(--fs-n1); font-weight: 600; color: var(--c-muted); }
+    & p { max-width: 36em; }
+  }
+  & .gl-links { display: flex; flex-wrap: wrap; gap: 0 calc(var(--space-unit) * 3); }
+  & .gl-links a { text-decoration-color: var(--c-accent); text-underline-offset: 0.25em; }
+
+  & .gl-foot { padding-block: calc(var(--space-unit) * 4); font-size: var(--fs-n1); color: var(--c-muted); }
+
+  @container (min-width: 760px) {
+    & .gl-cap { grid-template-columns: auto minmax(0, 1fr) auto; }
+    & .gl-meta { grid-column: 3; }
+    & .gl-info { grid-template-columns: minmax(0, 1fr) minmax(0, 3fr); }
+    & .gl-info h2 { padding-top: 0.25em; }
+    /* 두 번째 작품부터는 두 점씩 나란히 — 첫 작품만 크게 */
+    & .gl-works { grid-template-columns: 1fr 1fr; column-gap: calc(var(--space-unit) * 3); }
+    & .gl-works > li:first-child { grid-column: 1 / -1; }
+    & .gl-works > li:first-child .pf-cover { aspect-ratio: 16 / 9; }
+  }
+}

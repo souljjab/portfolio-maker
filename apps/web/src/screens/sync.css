@@ -1,0 +1,22 @@
+/* 앱 위쪽 동기화 상태 줄 */
+.sy {
+  --iv-bg: #FAFAF8; --iv-surface: #FFFFFF; --iv-text: #1A1A1A; --iv-muted: #5C5C5C;
+  --iv-line: #D9D6CF; --iv-accent: #2745D6; --iv-accent-soft: #ECEFFD; --iv-danger: #B3261E;
+  display: flex; flex-wrap: wrap; align-items: center; gap: 0.5rem 1rem;
+  margin-bottom: 1rem; padding: 0.5rem 0.75rem;
+  border: 1px solid var(--iv-line); border-radius: 12px; background: var(--iv-surface); color: var(--iv-text);
+  font-family: "Pretendard Variable", Pretendard, system-ui, sans-serif; font-size: 0.9375rem;
+  & .iv-btn { min-height: 40px; padding: 0 0.875rem; font-size: 0.875rem; }
+}
+.sy-text { margin: 0; color: var(--iv-muted); }
+.sy.is-synced .sy-text { color: #1B6E3A; }
+.sy.is-offline .sy-text, .sy.is-error .sy-text { color: var(--iv-danger); }
+.sy-panel { flex-basis: 100%; display: grid; gap: 0.75rem; padding-top: 0.5rem; border-top: 1px dashed var(--iv-line); }
+
+.sy-conflict {
+  display: grid; gap: 0.75rem; border-color: var(--iv-danger); background: #FFF6F5;
+  & p { margin: 0; }
+}
+.sy-btns { display: flex; flex-wrap: wrap; gap: 0.5rem; }
+.sy-btns .iv-btn { display: grid; justify-items: start; min-height: 56px; padding: 0.375rem 0.875rem; text-align: start; }
+.sy-sub { font-size: 0.8125rem; font-weight: 400; color: var(--iv-muted); }

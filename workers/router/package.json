@@ -1,0 +1,12 @@
+{
+  "name": "portfolio-sites-router",
+  "private": true,
+  "type": "module",
+  "scripts": {
+    "dev": "wrangler dev --env dev --port 8788 --persist-to ../../.wrangler/state",
+    "deploy": "wrangler deploy"
+  },
+  "devDependencies": {
+    "wrangler": "^4"
+  }
+}

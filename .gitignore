@@ -1,0 +1,14 @@
+node_modules/
+dist/
+.wrangler/
+.dev.vars
+.env*
+.DS_Store
+# 서버용 렌더러 번들 (apps/web에서 npm run build:render로 생성)
+workers/app/src/generated/
+!.env.example
+# 이 컴퓨터 전용 Claude Code 설정
+.claude/settings.local.json
+# 평가 실행 결과(다시 만들 수 있음) — 설정(_state.json)만 저장소에
+.claude/hillclimb/*/*
+!.claude/hillclimb/*/_state.json

@@ -1,0 +1,13 @@
+# 로컬 개발용 (cp .dev.vars.example .dev.vars). 실제 배포 값은 wrangler secret 으로.
+APP_ORIGIN=http://localhost:5173
+# 발행된 사이트 주소 (로컬: workers/router를 8788에서 띄우면 http://주소.localhost:8788 로 열림)
+SITE_URL=http://{slug}.localhost:8788
+# log: 메일을 보내지 않고 wrangler dev 터미널에 출력
+MAIL_MODE=log
+# 1이면 코드 요청 응답에 devCode를 넣는다 — 로컬 개발 전용, 배포 설정에는 절대 넣지 말 것
+EXPOSE_DEV_CODE=1
+CODE_PEPPER=local-dev-pepper-not-a-secret
+# 로컬에선 모든 요청이 같은 IP라 코드 요청 IP 제한(기본 시간당 20번)을 넉넉하게 — 배포 설정엔 넣지 말 것
+LOGIN_IP_LIMIT=1000
+# Claude 3안: 넣으면 로그인·나이 확인한 계정의 3안을 Claude가 만든다(실제 비용 발생). 비워 두면 규칙 엔진만
+# ANTHROPIC_API_KEY=

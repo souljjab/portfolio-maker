@@ -1,0 +1,84 @@
+/* 조용한 매거진: 좁은 본문 폭, 세리프 대형 제목, 넓은 여백. 글이 주인공. */
+.pf-quiet-editorial {
+  --qe-gutter: clamp(1.25rem, 6cqi, 4.5rem);
+  --qe-gap: clamp(calc(var(--space-section) * 0.45), 14cqi, var(--space-section));
+  --qe-measure: 36em;
+
+  & .qe-wrap { max-width: 76rem; margin-inline: auto; padding-inline: var(--qe-gutter); }
+
+  & .qe-top {
+    display: flex; justify-content: space-between; align-items: baseline;
+    padding-block: calc(var(--space-unit) * 3);
+    border-bottom: 1px solid color-mix(in srgb, var(--c-text) 14%, transparent);
+    font-size: var(--fs-n1);
+    color: var(--c-muted);
+  }
+  & .qe-wordmark { font-family: var(--f-display); font-size: var(--fs-1); color: var(--c-text); }
+
+  & .qe-section { padding-block: var(--qe-gap); }
+  & .qe-section + .qe-section { border-top: 1px solid color-mix(in srgb, var(--c-text) 10%, transparent); }
+
+  /* 섹션 라벨: 작은 글자라 강조색 대신 muted 사용(대비 4.5:1 보장) */
+  & .qe-label {
+    font-size: var(--fs-n1); font-weight: 500; letter-spacing: 0.08em; color: var(--c-muted);
+    margin-bottom: calc(var(--space-unit) * 5);
+    display: flex; align-items: center; gap: calc(var(--space-unit) * 1.5);
+    &::before { content: ""; width: 2rem; height: 1px; background: var(--c-accent); }
+  }
+
+  /* 첫 화면 */
+  & .qe-hero h1 {
+    font-family: var(--f-display); font-weight: 600;
+    font-size: clamp(var(--fs-3), 7.2cqi, var(--fs-5));
+    line-height: 1.22; letter-spacing: -0.015em;
+    max-width: 17em;
+    text-wrap: balance;
+  }
+
+  /* 작업 목록: 카드가 아니라 기사 목록 */
+  & .qe-projects { display: grid; gap: var(--qe-gap); }
+  & .qe-project { display: grid; gap: calc(var(--space-unit) * 3); }
+  & .qe-meta {
+    display: flex; flex-wrap: wrap; gap: 0.25em 1em;
+    font-size: var(--fs-n1); color: var(--c-muted);
+  }
+  & .qe-project h3 {
+    font-family: var(--f-display); font-weight: 600;
+    font-size: clamp(var(--fs-2), 4.2cqi, var(--fs-3));
+    line-height: 1.3; text-wrap: balance;
+  }
+  & .qe-project p { max-width: var(--qe-measure); }
+  & .qe-tags { font-size: var(--fs-n1); color: var(--c-muted); }
+  & .pf-cover { border-radius: var(--radius-sm); }
+
+  /* 소개·연락 */
+  & .qe-about p {
+    max-width: var(--qe-measure);
+    font-family: var(--f-display); font-size: var(--fs-2); line-height: 1.55;
+  }
+  & .qe-links { display: flex; flex-wrap: wrap; gap: 0 calc(var(--space-unit) * 4); }
+  & .qe-links a {
+    font-size: var(--fs-1);
+    text-decoration-color: var(--c-accent); text-decoration-thickness: 1px; text-underline-offset: 0.3em;
+    transition: text-decoration-thickness var(--motion-duration) var(--motion-easing);
+    &:hover { text-decoration-thickness: 2px; }
+  }
+
+  & .qe-foot {
+    padding-block: calc(var(--space-unit) * 5);
+    border-top: 1px solid color-mix(in srgb, var(--c-text) 14%, transparent);
+    font-size: var(--fs-n1); color: var(--c-muted);
+  }
+
+  /* 넓은 화면: 텍스트와 이미지를 좌우로, 프로젝트마다 좌우를 번갈아 */
+  @container (min-width: 760px) {
+    & .qe-project {
+      grid-template-columns: minmax(0, 5fr) minmax(0, 6fr);
+      align-items: center;
+      column-gap: calc(var(--space-unit) * 8);
+    }
+    & .qe-projects > li:nth-child(even) .pf-cover { order: -1; }
+    & .qe-about { display: grid; grid-template-columns: minmax(0, 1fr) minmax(0, 3fr); }
+    & .qe-about .qe-label { margin-top: 0.6em; }
+  }
+}

@@ -1,0 +1,74 @@
+/* 따뜻한 미니멀: 부드러운 색과 적은 요소, 편안한 첫인상. 가운데 정렬과 둥근 모서리. */
+.pf-warm-minimal {
+  --wm-gutter: clamp(1.25rem, 5cqi, 3rem);
+  --wm-gap: clamp(calc(var(--space-section) * 0.5), 11cqi, var(--space-section));
+  --wm-shadow: 0 1px 2px rgb(0 0 0 / 0.05), 0 10px 30px rgb(0 0 0 / 0.06);
+
+  & .wm-wrap { max-width: 64rem; margin-inline: auto; padding-inline: var(--wm-gutter); }
+
+  /* 첫 화면: 가운데 모은 프로필 */
+  & .wm-hero {
+    display: grid; justify-items: center; text-align: center;
+    gap: calc(var(--space-unit) * 2);
+    padding-block: var(--wm-gap);
+  }
+  & .wm-avatar {
+    display: grid; place-items: center;
+    width: clamp(4.5rem, 16cqi, 7rem); aspect-ratio: 1; border-radius: 50%;
+    background: var(--c-surface); color: var(--c-text);
+    font-family: var(--f-display); font-size: var(--fs-3); font-weight: 600;
+    box-shadow: var(--wm-shadow);
+  }
+  & .wm-hero h1 {
+    font-family: var(--f-display);
+    font-size: clamp(var(--fs-3), 6cqi, var(--fs-5));
+    font-weight: 700; letter-spacing: -0.02em; line-height: 1.2;
+  }
+  & .wm-headline { max-width: 26em; font-size: var(--fs-1); color: var(--c-muted); text-wrap: balance; }
+  & .wm-btn {
+    margin-top: var(--space-unit); padding-inline: 1.5em; border-radius: 999px;
+    background: var(--c-accent); color: var(--c-on-accent);
+    text-decoration: none; font-weight: 600;
+    transition: transform var(--motion-duration) var(--motion-easing);
+    &:hover { transform: translateY(-2px); }
+  }
+
+  & .wm-section { padding-bottom: var(--wm-gap); }
+  & .wm-title {
+    margin-bottom: calc(var(--space-unit) * 4);
+    text-align: center; font-family: var(--f-display); font-size: var(--fs-2); font-weight: 700;
+  }
+
+  /* 작업: 둥근 카드 */
+  & .wm-cards { display: grid; gap: calc(var(--space-unit) * 3); grid-template-columns: repeat(auto-fit, minmax(min(100%, 17rem), 1fr)); }
+  & .wm-cards > li { display: grid; }
+  & .wm-card { overflow: hidden; border-radius: var(--radius-lg); background: var(--c-surface); box-shadow: var(--wm-shadow); }
+  & .wm-card .pf-cover { aspect-ratio: 16 / 10; }
+  & .wm-card-body { display: grid; gap: var(--space-unit); padding: calc(var(--space-unit) * 3); }
+  & .wm-card h3 { font-size: var(--fs-1); font-weight: 700; line-height: 1.35; }
+  & .wm-meta { font-size: var(--fs-n1); color: var(--c-muted); }
+  & .wm-tags {
+    display: flex; flex-wrap: wrap; gap: 0.4em; margin-top: calc(var(--space-unit) * 0.5);
+    & li { padding: 0.2em 0.75em; border-radius: 999px; background: var(--c-bg); color: var(--c-muted); font-size: var(--fs-n1); }
+  }
+
+  /* 소개: 부드러운 상자 */
+  & .wm-about {
+    max-width: 40rem; margin-inline: auto; padding: calc(var(--space-unit) * 5) calc(var(--space-unit) * 4);
+    border-radius: var(--radius-lg); background: var(--c-surface); text-align: center;
+    & .wm-title { margin-bottom: calc(var(--space-unit) * 2); }
+    & p { font-size: var(--fs-1); }
+  }
+
+  /* 연락: 알약 버튼 */
+  & .wm-links { display: flex; flex-wrap: wrap; justify-content: center; gap: var(--space-unit); }
+  & .wm-pill {
+    padding-inline: 1.25em; border-radius: 999px;
+    border: 1px solid color-mix(in srgb, var(--c-text) 22%, transparent);
+    text-decoration: none; font-weight: 500;
+    transition: background-color var(--motion-duration) var(--motion-easing);
+    &:hover { background: var(--c-surface); }
+  }
+
+  & .wm-foot { padding-block: calc(var(--space-unit) * 5); text-align: center; font-size: var(--fs-n1); color: var(--c-muted); }
+}

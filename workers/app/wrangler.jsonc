@@ -1,0 +1,43 @@
+{
+  "$schema": "./node_modules/wrangler/config-schema.json",
+  "name": "portfolio-app",
+  "main": "src/index.js",
+  "compatibility_date": "2026-09-26",
+
+  // app.YOUR_DOMAIN: 앱 정적 파일(apps/web/dist) + /api 를 한 Worker가 서빙 (같은 출처 → 쿠키·CSRF 규칙 단순)
+  // 배포 전: YOUR_DOMAIN 교체, apps/web에서 npm run build 먼저
+  "routes": [{ "pattern": "app.YOUR_DOMAIN", "custom_domain": true }],
+  "assets": {
+    "directory": "../../apps/web/dist",
+    "not_found_handling": "single-page-application",
+    "run_worker_first": ["/api/*"]
+  },
+
+  // 계정·세션·로그인 코드 (배포 전: npx wrangler d1 create portfolio → database_id 교체)
+  "d1_databases": [
+    { "binding": "DB", "database_name": "portfolio", "database_id": "REPLACE_WITH_D1_DATABASE_ID", "migrations_dir": "migrations" }
+  ],
+
+  // 사용자 사이트 파일 (라우팅 Worker와 같은 버킷): sites/{주소}/..., 올린 이미지 uploads/{user}/...
+  "r2_buckets": [
+    { "binding": "SITES", "bucket_name": "portfolio-sites" }
+  ],
+
+  "vars": {
+    "APP_ORIGIN": "https://app.YOUR_DOMAIN",
+    "SITE_URL": "https://{slug}.YOUR_DOMAIN",
+    "MAIL_MODE": "resend",
+    "MAIL_FROM": "포트폴리오 메이커 <no-reply@YOUR_DOMAIN>",
+    // Claude 3안 (ANTHROPIC_API_KEY가 없으면 앱이 규칙 엔진만 쓴다). effort·모델은 평가(evals/directions)로 정한다
+    "AI_MODEL": "claude-opus-5-5",
+    "AI_EFFORT": "low",
+    "AI_USER_HOURLY": "10",   // 사용자별 시간당 호출
+    "AI_DAILY_LIMIT": "300"   // 서비스 전체 하루 호출 (비용 상한)
+  }
+  // 비밀값은 설정 파일에 넣지 않는다 (npx wrangler secret put <이름>):
+  //   CODE_PEPPER      로그인 코드 해시용 비밀값 (긴 무작위 문자열)
+  //   RESEND_API_KEY   메일 발송 (Resend)
+  //   TURNSTILE_SECRET 코드 요청 남용 방지 (선택 — 없으면 검사 생략)
+  //   ANTHROPIC_API_KEY Claude 3안 (선택 — 없으면 규칙 엔진만)
+  // 로컬 개발 값은 .dev.vars (.dev.vars.example 참고)
+}

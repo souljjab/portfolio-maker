@@ -1,0 +1,45 @@
+/* 발행 화면. 인터뷰(.iv)의 색 변수·버튼을 재사용 */
+.pb { display: grid; gap: 1.25rem; }
+.pb .iv-question { margin-top: 1rem; }
+.pb .iv-hint { margin: 0; }
+.pb-sec {
+  display: grid; gap: 0.75rem;
+  padding: 1.25rem; border: 1px solid var(--iv-line); border-radius: 14px; background: var(--iv-surface);
+  & h2 { margin: 0; font-size: 1.125rem; }
+  & p { margin: 0; }
+}
+.pb-good { color: #1B6E3A; }
+.pb-bad { color: var(--iv-danger); }
+.pb-list {
+  display: grid; gap: 0.5rem; margin: 0; padding: 0; list-style: none;
+  & li { display: flex; flex-wrap: wrap; align-items: center; justify-content: space-between; gap: 0.5rem 1rem;
+    padding: 0.625rem 0.75rem; border-radius: 10px; background: var(--iv-bg); }
+}
+.pb-warn li { border-left: 3px solid #B26B00; }
+.pb-warn-h { font-weight: 600; margin-top: 0.5rem !important; }
+.pb-label { font-weight: 600; }
+.pb-slug {
+  display: flex; align-items: center; gap: 0.25rem; flex-wrap: wrap;
+  font-variant-numeric: tabular-nums; color: var(--iv-muted);
+  & input { flex: 1 1 10rem; width: auto; min-height: 44px; color: var(--iv-text); }
+}
+.pb-done { display: grid; gap: 0.5rem; padding: 1rem; border-radius: 12px; background: var(--iv-accent-soft); }
+.pb-done-h { font-size: 1.25rem; font-weight: 700; &:focus { outline: none; } }
+.pb-files { display: flex; flex-wrap: wrap; gap: 0.5rem; }
+.pb-back, .pb-sec > .iv-btn { justify-self: start; }
+
+/* 계정 단계 */
+.pb-account { display: grid; gap: 0.75rem; }
+.pb-form { display: grid; gap: 0.5rem; }
+.pb-inline { display: flex; flex-wrap: wrap; gap: 0.5rem; }
+.pb-inline input { flex: 1 1 14rem; min-height: 44px; }
+#pb-code { font-variant-numeric: tabular-nums; letter-spacing: 0.3em; max-width: 12rem; flex: 0 1 12rem; }
+.pb-start { justify-self: start; }
+.pb-dev { padding: 0.5rem 0.75rem; border: 1px dashed #B26B00; border-radius: 8px; font-size: 0.875rem; }
+
+/* 공개 중인 사이트 · 비공개로 */
+.pb-live { padding: 0.625rem 0.75rem; border-radius: 10px; background: var(--iv-bg); }
+.pb-off { display: grid; gap: 0.5rem; padding: 0.75rem; border: 1px solid var(--iv-danger); border-radius: 10px; }
+.pb-danger { color: var(--iv-danger); border-color: var(--iv-danger); }
+.pb-warn { display: grid; gap: 0.5rem; padding: 0.75rem; border: 1px solid var(--iv-danger); border-radius: 8px; background: #FFF6F5; }
+.pb-warn p { margin: 0; }

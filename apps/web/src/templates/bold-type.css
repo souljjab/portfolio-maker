@@ -1,0 +1,146 @@
+/* 큰 글자: 화면 폭을 채우는 이름 하나로 기억에 남기기. 모서리 없음, 굵은 선, 모노 메타정보. */
+.pf-bold-type {
+  --bt-gutter: clamp(1rem, 4cqi, 3rem);
+  --bt-gap: clamp(calc(var(--space-section) * 0.5), 12cqi, var(--space-section));
+  --bt-rule: 2px solid var(--c-text);
+
+  & .bt-wrap { padding-inline: var(--bt-gutter); }
+
+  & .bt-mono {
+    font-family: var(--f-mono);
+    font-size: var(--fs-n1);
+    letter-spacing: 0.02em;
+    color: var(--c-muted);
+  }
+
+  & .bt-top {
+    display: flex; justify-content: space-between; gap: 1rem;
+    padding-block: calc(var(--space-unit) * 2);
+    border-bottom: var(--bt-rule);
+  }
+
+  /* 첫 화면: 이름이 폭을 채운다. 크기는 이름 길이로 계산해 --bt-name-size로 들어옴 */
+  & .bt-hero { padding-block: calc(var(--space-unit) * 4) var(--bt-gap); }
+  & .bt-hero h1 {
+    font-family: var(--f-display);
+    font-size: max(var(--fs-3), var(--bt-name-size, 30cqi));
+    font-weight: 800;
+    line-height: 0.95;
+    letter-spacing: -0.045em;
+    margin-inline-start: -0.04em; /* 큰 글자의 왼쪽 여백 보정 */
+  }
+  & .bt-headline {
+    margin-top: calc(var(--space-unit) * 4);
+    max-width: 22em;
+    font-size: clamp(var(--fs-1), 3.4cqi, var(--fs-2));
+    font-weight: 500;
+    line-height: 1.35;
+    text-wrap: balance;
+  }
+
+  /* 섹션 머리: 굵은 선 + 모노 번호 */
+  & .bt-head {
+    display: flex; align-items: baseline; gap: 1rem;
+    border-top: var(--bt-rule);
+    padding-top: calc(var(--space-unit) * 1.5);
+    margin-bottom: calc(var(--space-unit) * 5);
+  }
+  & .bt-head h2 { font-size: var(--fs-0); font-weight: 700; }
+
+  /* 작업: 거대한 제목이 줄지어 서는 목록 */
+  & .bt-projects { padding-bottom: var(--bt-gap); }
+  & .bt-project {
+    display: grid;
+    gap: calc(var(--space-unit) * 2);
+    padding-block: calc(var(--space-unit) * 4);
+    border-bottom: 1px solid var(--c-text);
+  }
+  /* 강조색은 큰 글자(24px 이상, 굵게)에만 — 대비 3:1 기준 */
+  & .bt-index {
+    font-family: var(--f-mono);
+    font-size: max(var(--fs-2), 1.5rem);
+    font-weight: 500;
+    line-height: 1;
+    color: var(--c-accent);
+  }
+  & .bt-project h3 {
+    font-family: var(--f-display);
+    font-size: clamp(var(--fs-3), 8.5cqi, var(--fs-5));
+    font-weight: 800;
+    line-height: 1.02;
+    letter-spacing: -0.035em;
+    text-wrap: balance;
+  }
+  & .bt-project p { max-width: 34em; font-size: var(--fs-1); }
+  & .bt-meta { display: flex; flex-wrap: wrap; gap: 0.25em 1.5em; }
+  /* 이미지는 보조: 타이포가 주인공이므로 작은 썸네일로만 */
+  & .bt-side { display: flex; align-items: center; gap: calc(var(--space-unit) * 2); }
+  & .pf-cover { flex: 0 0 6.5rem; aspect-ratio: 4 / 3; border-radius: var(--radius-sm); }
+
+  /* 소개: 강조색 면 위의 큰 문장 (onAccent/accent 대비 4.5:1 검사됨) */
+  & .bt-about {
+    background: var(--c-accent);
+    color: var(--c-on-accent);
+    padding-block: var(--bt-gap);
+    & .bt-head { border-color: var(--c-on-accent); }
+    & .bt-mono { color: inherit; } /* muted는 강조색 면 위 대비가 보장되지 않음 */
+    & p {
+      font-family: var(--f-display);
+      font-size: clamp(var(--fs-2), 6cqi, var(--fs-4));
+      font-weight: 700;
+      line-height: 1.2;
+      letter-spacing: -0.02em;
+      max-width: 20em;
+      text-wrap: balance;
+    }
+    & :focus-visible { outline-color: var(--c-on-accent); }
+  }
+
+  /* 연락: 링크 자체가 큰 글자 */
+  & .bt-contact { padding-block: var(--bt-gap); }
+  & .bt-links a {
+    font-family: var(--f-display);
+    font-size: clamp(var(--fs-2), 7cqi, var(--fs-4));
+    font-weight: 800;
+    letter-spacing: -0.03em;
+    text-decoration: none;
+    background: linear-gradient(var(--c-accent), var(--c-accent)) left bottom / 0% 0.08em no-repeat;
+    transition: background-size var(--motion-duration) var(--motion-easing);
+    &::after { content: " ↗"; font-weight: 400; }
+    &:hover, &:focus-visible { background-size: 100% 0.08em; }
+  }
+
+  & .bt-foot {
+    display: flex; justify-content: space-between; gap: 1rem;
+    padding-block: calc(var(--space-unit) * 2);
+    border-top: var(--bt-rule);
+  }
+
+  @container (min-width: 760px) {
+    & .bt-project {
+      grid-template-columns: 5rem minmax(0, 1fr) minmax(0, 14rem);
+      column-gap: calc(var(--space-unit) * 4);
+      align-items: start;
+    }
+    & .bt-project .bt-index { padding-top: 0.35em; }
+    & .bt-side { flex-direction: column; align-items: stretch; padding-top: 0.6em; }
+    & .bt-side .pf-cover { flex: none; } /* 세로 방향에선 basis가 높이가 되므로 해제 */
+    & .bt-meta { flex-direction: column; text-align: end; }
+  }
+
+  /* 시그니처: 스크롤에 따라 제목이 가늘게 들어와 굵어진다 (JS 없이, 지원 브라우저에서만) */
+  @supports (animation-timeline: view()) {
+    @media (prefers-reduced-motion: no-preference) {
+      & .bt-project h3 {
+        animation: bt-weight linear both;
+        animation-timeline: view();
+        animation-range: entry 10% cover 45%;
+      }
+    }
+  }
+}
+
+@keyframes bt-weight {
+  from { font-weight: 250; letter-spacing: -0.01em; }
+  to { font-weight: 800; letter-spacing: -0.035em; }
+}

@@ -1,0 +1,115 @@
+/*
+ * 테크니컬: 정밀한 선과 데이터. 1px 선으로 나뉜 칸(사양서 같은 구성)과 높은 정보 밀도.
+ * 모노 폰트는 번호·수치·라벨에만 쓴다(개발자=터미널 식의 일대일 매핑 금지).
+ */
+.pf-technical {
+  --tc-line: color-mix(in srgb, var(--c-text) 16%, transparent);
+  --tc-pad: calc(var(--space-unit) * 2.5);
+  --tc-gutter: clamp(0.75rem, 3cqi, 2.5rem);
+
+  font-variant-numeric: tabular-nums;
+  line-height: 1.55;
+
+  & .tc-wrap { max-width: 84rem; margin-inline: auto; padding-inline: var(--tc-gutter); }
+
+  /* 칸 격자: 각 칸이 1px 테두리를 그림자로 그리고, 1px 틈에서 이웃 칸 선과 겹쳐 한 줄이 된다.
+     (빈 칸에는 아무것도 그려지지 않도록 격자 배경은 쓰지 않음) */
+  & .tc-grid {
+    display: grid;
+    gap: 1px;
+    padding: 1px;
+  }
+  & .tc-cell {
+    box-shadow: 0 0 0 1px var(--tc-line);
+    background: var(--c-bg);
+    padding: var(--tc-pad);
+    min-width: 0;
+    transition: background-color var(--motion-duration) var(--motion-easing);
+  }
+
+  & .tc-code {
+    font-family: var(--f-mono);
+    font-size: var(--fs-n1);
+    letter-spacing: 0.02em;
+    color: var(--c-muted);
+    display: flex; justify-content: space-between; gap: 1em;
+  }
+  /* 강조색은 작은 사각 표식에만(글자 아님) */
+  & .tc-mark::before {
+    content: ""; display: inline-block;
+    width: 0.55em; height: 0.55em; margin-inline-end: 0.6em;
+    background: var(--c-accent);
+    vertical-align: 0.05em;
+  }
+
+  & .tc-top { padding-block: calc(var(--space-unit) * 2); }
+  & .tc-section { padding-bottom: clamp(calc(var(--space-section) * 0.5), 8cqi, var(--space-section)); }
+
+  /* 첫 화면: 이름·한 줄 소개 + 사양표 */
+  & .tc-hero h1 {
+    margin-top: calc(var(--space-unit) * 6);
+    font-family: var(--f-display);
+    font-size: clamp(var(--fs-4), 6cqi, var(--fs-6));
+    font-weight: 700;
+    line-height: 1.1;
+    letter-spacing: -0.03em;
+  }
+  & .tc-headline {
+    margin-top: calc(var(--space-unit) * 1.5);
+    font-size: var(--fs-2);
+    color: var(--c-muted);
+    max-width: 30em;
+    text-wrap: balance;
+  }
+
+  /* 정의 목록: 라벨 | 값 한 줄씩 */
+  & .tc-spec { display: grid; align-content: start; }
+  & .tc-spec > div {
+    display: grid; grid-template-columns: 6.5rem minmax(0, 1fr); gap: 1rem;
+    padding-block: calc(var(--space-unit) * 1.25);
+    border-bottom: 1px solid var(--tc-line);
+    &:last-child { border-bottom: 0; }
+  }
+  & .tc-spec dt { font-family: var(--f-mono); font-size: var(--fs-n1); color: var(--c-muted); padding-top: 0.15em; }
+  & .tc-spec dd { font-weight: 500; }
+
+  & .tc-head {
+    display: flex; justify-content: space-between; align-items: baseline; gap: 1rem;
+    padding-block: calc(var(--space-unit) * 4) calc(var(--space-unit) * 1.5);
+  }
+  & .tc-head h2 { font-size: var(--fs-1); font-weight: 700; letter-spacing: -0.01em; }
+
+  /* 작업: 같은 크기의 칸이 촘촘히 */
+  & .tc-projects { grid-template-columns: repeat(auto-fit, minmax(min(100%, 17rem), 1fr)); }
+  & .tc-projects > li { display: grid; }
+  & .tc-project {
+    display: grid; grid-template-rows: auto auto 1fr auto; gap: calc(var(--space-unit) * 1.5);
+    &:hover { background: var(--c-surface); }
+  }
+  & .tc-project h3 { font-size: var(--fs-2); font-weight: 700; line-height: 1.25; letter-spacing: -0.015em; }
+  & .tc-project p { color: var(--c-text); }
+  & .tc-project .tc-spec { font-size: var(--fs-n1); }
+  & .tc-project .tc-spec > div { grid-template-columns: 3.5rem minmax(0, 1fr); padding-block: 0.4em; }
+  & .pf-cover {
+    margin-top: calc(var(--space-unit) * 1.5);
+    aspect-ratio: 16 / 10;
+    border-radius: var(--radius-sm);
+    border: 1px solid var(--tc-line);
+  }
+
+  & .tc-about p { max-width: 38em; font-size: var(--fs-1); }
+
+  & .tc-links a {
+    font-weight: 500;
+    text-decoration-color: var(--c-accent);
+    text-underline-offset: 0.25em;
+  }
+  & .tc-host { font-family: var(--f-mono); font-size: var(--fs-n1); color: var(--c-muted); margin-inline-start: 0.75em; }
+
+  & .tc-foot { padding-block: calc(var(--space-unit) * 3); }
+
+  @container (min-width: 760px) {
+    & .tc-hero { grid-template-columns: minmax(0, 2fr) minmax(0, 1fr); }
+    & .tc-hero .tc-id { padding-block-end: calc(var(--space-unit) * 6); }
+  }
+}

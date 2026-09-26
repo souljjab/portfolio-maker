@@ -1,0 +1,127 @@
+/* 카드 썸네일. 모든 치수는 카드 폭 기준 cqi (100cqi = 카드 폭) */
+.th {
+  container-type: inline-size;
+  position: relative;
+  aspect-ratio: 4 / 3;
+  overflow: hidden;
+  border-radius: 12px;
+  line-height: 1.2;
+  word-break: keep-all;
+}
+.th-inner, .th-inner > div { position: absolute; inset: 0; }
+.th p { margin: 0; }
+.th ul { margin: 0; padding: 0; list-style: none; }
+.th i { display: block; font-style: normal; }
+.th-bar { height: 1.6cqi; border-radius: 1cqi; background: currentColor; opacity: 0.18; }
+
+/* 1. 조용한 매거진 */
+.th-qe {
+  background: #FBFAF7; color: #1D1C1A; padding: 7cqi 9cqi;
+  font-family: "Noto Serif KR", serif;
+  & .th-qe-top { font-size: 3cqi; display: flex; align-items: center; gap: 2cqi; color: #57534B;
+    &::after { content: ""; flex: 1; height: 0.2cqi; background: #D8D3C8; } }
+  & .th-qe-h { margin-top: 7cqi; font-size: 7.4cqi; font-weight: 600; line-height: 1.25; letter-spacing: -0.02em; }
+  & ul { margin-top: 6cqi; display: grid; gap: 2.4cqi; }
+  & li { display: grid; grid-template-columns: 11cqi 1fr; align-items: center; padding-top: 2.4cqi; border-top: 0.2cqi solid #E2DDD2; font-size: 2.6cqi; color: #8A3B2E; }
+}
+
+/* 2. 따뜻한 미니멀 */
+.th-wm {
+  background: #F6F4EF; color: #23211E; font-family: "Pretendard Variable", sans-serif;
+  display: flex; flex-direction: column; align-items: center; padding-top: 8cqi;
+  & .th-wm-avatar { width: 13cqi; height: 13cqi; border-radius: 50%; background: #E0CFBA; }
+  & .th-wm-name { margin-top: 3cqi; font-size: 5.4cqi; font-weight: 600; }
+  & .th-wm-line { margin-top: 1.4cqi; font-size: 3cqi; color: #5E5A53; }
+  & .th-wm-btn { margin-top: 3.6cqi; padding: 1.6cqi 4.4cqi; border-radius: 99cqi; background: #2F5D50; color: #fff; font-size: 2.8cqi; }
+  & .th-wm-cards { display: flex; gap: 3cqi; margin-top: 6cqi; width: 72cqi;
+    & i { flex: 1; height: 22cqi; border-radius: 3.5cqi; background: #fff; box-shadow: 0 0.6cqi 2cqi rgb(60 40 20 / 0.08); } }
+}
+
+/* 3. 스위스 그리드 */
+.th-sw {
+  background: #FFFFFF; color: #111; padding: 7cqi; font-family: "Pretendard Variable", sans-serif;
+  & .th-sw-name { font-size: 15cqi; font-weight: 800; letter-spacing: -0.06em; line-height: 1; }
+  & .th-sw-sq { position: absolute; top: 7cqi; right: 7cqi; width: 12cqi; height: 12cqi; background: #E4322B; }
+  & .th-sw-cols { position: absolute; left: 7cqi; right: 7cqi; bottom: 7cqi; display: grid; grid-template-columns: repeat(3, 1fr); gap: 4cqi; padding-top: 3cqi; border-top: 0.8cqi solid #111; }
+  & .th-sw-cols div { display: grid; gap: 1.8cqi; }
+  & .th-sw-cols b { font-size: 3.2cqi; }
+}
+
+/* 4. 큰 글자 */
+.th-bt {
+  background: #EDEFF2; color: #15181C; padding: 5cqi 6cqi; font-family: "Pretendard Variable", sans-serif;
+  & .th-bt-meta { display: flex; justify-content: space-between; font-family: "JetBrains Mono", monospace; font-size: 2.4cqi; color: #4A515B; padding-bottom: 2cqi; border-bottom: 0.5cqi solid #15181C; }
+  & .th-bt-name { margin-top: 3cqi; margin-left: -1.2cqi; font-size: 36cqi; font-weight: 800; letter-spacing: -0.07em; line-height: 0.95; }
+  & .th-bt-line { margin-top: 3cqi; font-size: 4cqi; font-weight: 500; }
+  & .th-bt-idx { position: absolute; left: 6cqi; bottom: 5cqi; font-family: "JetBrains Mono", monospace; font-size: 6cqi; color: #1F46C8; }
+}
+
+/* 5. 벤토 그리드 */
+.th-bn {
+  background: #EEEEF1; padding: 5cqi; font-family: "Pretendard Variable", sans-serif;
+  display: grid; grid-template-columns: repeat(4, 1fr); grid-template-rows: repeat(3, 1fr); gap: 2.4cqi;
+  & > div { border-radius: 3.4cqi; padding: 3cqi; display: grid; align-content: start; gap: 1.6cqi; }
+  & .th-bn-a { grid-column: span 2; grid-row: span 2; background: #fff; color: #1A1A1F; & b { font-size: 6cqi; } }
+  & .th-bn-b { grid-column: span 2; background: #FFD66B; }
+  & .th-bn-c { background: #1E1E24; color: #fff; align-content: end; & b { font-size: 7cqi; } & span { font-size: 2.2cqi; opacity: 0.8; } }
+  & .th-bn-d { background: #BFD7FF; }
+  & .th-bn-e { grid-column: span 4; background: #fff; color: #1A1A1F; align-content: center; }
+}
+
+/* 6. 갤러리 */
+.th-gl {
+  background: #F4F2EE; color: #222; padding: 4cqi 4cqi 0; font-family: "Pretendard Variable", sans-serif;
+  & .th-gl-img { position: relative; height: 80%; overflow: hidden; border-radius: 0.6cqi; background: linear-gradient(#AFC3CF 0%, #D9D2C1 58%, #8C9A7C 58%, #6F7F62 100%); }
+  & .th-gl-sun { position: absolute; top: 14cqi; right: 16cqi; width: 12cqi; height: 12cqi; border-radius: 50%; background: #F3E3C2; }
+  & .th-gl-hill { position: absolute; left: -10cqi; bottom: -22cqi; width: 70cqi; height: 50cqi; border-radius: 50%; background: #5E6E52; }
+  & .th-gl-cap { display: flex; justify-content: space-between; padding-top: 3cqi; font-size: 2.4cqi; color: #555; }
+}
+
+/* 7. 테크니컬: 위는 이름 칸(2/3) + 사양 칸(1/3), 아래는 프로젝트 3칸 */
+.th-tc {
+  --line: #D5D9DE;
+  background: #F5F6F7; color: #0E1116; padding: 4cqi 5cqi; font-family: "Pretendard Variable", sans-serif;
+  & .th-tc-top { display: flex; justify-content: space-between; font-family: "JetBrains Mono", monospace; font-size: 2.2cqi; color: #4F5763; margin-bottom: 3cqi; }
+  & .th-tc-grid {
+    display: grid; grid-template-columns: repeat(3, 1fr); grid-template-areas: "hero hero spec" "a b c";
+    gap: 0.3cqi; background: var(--line); border: 0.3cqi solid var(--line);
+  }
+  & .th-tc-grid > div { background: #F5F6F7; padding: 2.6cqi; display: grid; gap: 1.6cqi; align-content: start; }
+  & .th-tc-hero { grid-area: hero; min-height: 26cqi; align-content: end; & b { font-size: 8cqi; letter-spacing: -0.03em; } }
+  & .th-tc-grid > .th-tc-hero { align-content: end; }
+  & .th-tc-spec { grid-area: spec; }
+  & .th-tc-spec p { display: grid; grid-template-columns: 5cqi 1fr; align-items: center; font-family: "JetBrains Mono", monospace; font-size: 2cqi; color: #4F5763; padding-bottom: 1.4cqi; border-bottom: 0.3cqi solid var(--line); }
+  & .th-tc-code { font-family: "JetBrains Mono", monospace; font-size: 2.2cqi; display: flex; align-items: center; gap: 1.2cqi;
+    &::before { content: ""; width: 1.6cqi; height: 1.6cqi; background: #0B6B74; } }
+}
+
+/* 8. 레트로 웹 */
+.th-rw {
+  background: #FFF3B0 radial-gradient(#F2D25E 18%, transparent 20%) 0 0 / 5cqi 5cqi;
+  padding: 7cqi 8cqi; font-family: "Courier New", monospace; color: #111;
+  & .th-rw-win { height: 100%; background: #E4E4E4; border: 0.8cqi solid; border-color: #fff #6B6B6B #6B6B6B #fff; }
+  & .th-rw-title { background: #000080; color: #fff; font-size: 3.4cqi; font-weight: 700; padding: 1.4cqi 2.4cqi; }
+  & .th-rw-body { padding: 4cqi; display: grid; gap: 4cqi; font-size: 3.6cqi; }
+  & u { color: #0000EE; }
+  & .th-rw-new { color: #B00018; font-weight: 700; }
+  & .th-rw-count span { background: #000; color: #3CFF4A; padding: 0.6cqi 1.4cqi; letter-spacing: 0.3em; }
+}
+
+/* 9. 오가닉 */
+.th-og {
+  background: #EFE6D8; color: #3E3A2F; padding: 10cqi 9cqi; font-family: "Noto Serif KR", serif;
+  & .th-og-blob1 { position: absolute; right: -8cqi; top: -6cqi; width: 58cqi; height: 50cqi; background: #CDB997; border-radius: 62% 38% 55% 45% / 48% 60% 40% 52%; }
+  & .th-og-blob2 { position: absolute; right: 22cqi; bottom: -10cqi; width: 30cqi; height: 30cqi; background: #6B7A45; border-radius: 46% 54% 40% 60% / 55% 45% 55% 45%; }
+  & .th-og-name { position: relative; font-size: 11cqi; font-style: italic; font-weight: 600; }
+  & .th-og-line { position: relative; margin-top: 2cqi; font-size: 3.4cqi; max-width: 40cqi; }
+  & .th-og-pill { position: relative; display: inline-block; margin-top: 5cqi; padding: 1.6cqi 4cqi; border: 0.4cqi solid #3E3A2F; border-radius: 99cqi; font-size: 2.8cqi; }
+}
+
+/* 10. 실험적 */
+.th-ex {
+  background: #161616; color: #F2F2F2; font-family: "Pretendard Variable", sans-serif;
+  & .th-ex-shape { position: absolute; left: 44cqi; top: 10cqi; width: 38cqi; height: 50cqi; background: #FF5A1F; transform: rotate(12deg); mix-blend-mode: screen; }
+  & .th-ex-name { position: absolute; left: -6cqi; top: 12cqi; font-size: 44cqi; font-weight: 900; line-height: 0.9; letter-spacing: -0.08em; color: transparent; -webkit-text-stroke: 0.5cqi #F2F2F2; transform: rotate(-9deg); }
+  & .th-ex-side { position: absolute; right: 4cqi; top: 6cqi; writing-mode: vertical-rl; white-space: nowrap; font-size: 2.2cqw; letter-spacing: 0.2em; } /* 세로쓰기에선 cqi가 높이 축이 되므로 cqw */
+  & .th-ex-small { position: absolute; left: 6cqi; bottom: 6cqi; font-size: 3cqi; max-width: 40cqi; }
+}

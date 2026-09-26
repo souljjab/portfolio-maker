@@ -1,0 +1,72 @@
+/* 오가닉: 곡선과 자연색, 손으로 만든 듯한 질감 */
+.pf-organic {
+  --og-gutter: clamp(1.25rem, 6cqi, 4rem);
+  --og-gap: clamp(calc(var(--space-section) * 0.5), 12cqi, var(--space-section));
+
+  & .og-wrap { max-width: 72rem; margin-inline: auto; padding-inline: var(--og-gutter); }
+
+  /* 첫 화면: 글자와 곡선 도형을 나란히 (도형이 글자 뒤로 가지 않게) */
+  & .og-hero { display: grid; gap: calc(var(--space-unit) * 3); padding-block: calc(var(--og-gap) * 0.6) var(--og-gap); }
+  & .og-hero h1 {
+    font-family: var(--f-display); font-style: italic; font-weight: 600;
+    font-size: clamp(var(--fs-4), 10cqi, var(--fs-6)); line-height: 1.1; letter-spacing: -0.01em;
+  }
+  & .og-headline { margin-top: calc(var(--space-unit) * 2); max-width: 22em; font-size: var(--fs-1); text-wrap: balance; }
+  & .og-art { position: relative; order: -1; height: clamp(8rem, 34cqi, 22rem); }
+  & .og-blob { position: absolute; display: block; }
+  & .og-blob-1 {
+    inset: 0 10% 12% 20%;
+    background: color-mix(in srgb, var(--c-accent) 22%, var(--c-bg));
+    border-radius: 62% 38% 55% 45% / 48% 60% 40% 52%;
+  }
+  & .og-blob-2 {
+    width: 34%; aspect-ratio: 1; right: 4%; bottom: 0;
+    background: var(--c-accent);
+    border-radius: 46% 54% 40% 60% / 55% 45% 55% 45%;
+  }
+  & .og-blob-3 {
+    width: 20%; aspect-ratio: 1; left: 8%; top: 10%;
+    background: var(--c-surface);
+    border-radius: 50% 50% 45% 55% / 60% 40% 60% 40%;
+  }
+
+  & .og-section { padding-bottom: var(--og-gap); }
+  & .og-title {
+    display: flex; align-items: center; gap: 0.6em;
+    margin-bottom: calc(var(--space-unit) * 4);
+    font-family: var(--f-display); font-style: italic; font-size: var(--fs-2); font-weight: 600;
+    /* 잎 모양 표식 (장식) */
+    &::before { content: ""; width: 0.9em; height: 0.55em; background: var(--c-accent); border-radius: 0 100% 0 100%; }
+  }
+
+  /* 작업: 곡선으로 잘린 이미지, 두 줄로 엇갈려 놓기 */
+  & .og-projects { display: grid; gap: calc(var(--space-unit) * 6); }
+  & .og-project { display: grid; gap: var(--space-unit); }
+  & .og-project .pf-cover { aspect-ratio: 5 / 4; margin-bottom: var(--space-unit); }
+  & .og-shape-0 { border-radius: 48% 52% 42% 58% / 38% 44% 56% 62%; }
+  & .og-shape-1 { border-radius: var(--radius-lg) 45% var(--radius-lg) 45%; }
+  & .og-shape-2 { border-radius: 58% 42% 60% 40% / 52% 58% 42% 48%; }
+  & .og-meta { font-size: var(--fs-n1); color: var(--c-muted); }
+  & .og-project h3 { font-family: var(--f-display); font-size: var(--fs-2); font-weight: 600; line-height: 1.3; }
+
+  /* 소개: 큰 세리프 문단 */
+  & .og-about p { max-width: 30em; font-family: var(--f-display); font-size: var(--fs-2); line-height: 1.55; }
+
+  /* 연락: 물결 밑줄 */
+  & .og-links { display: flex; flex-wrap: wrap; gap: 0 calc(var(--space-unit) * 4); }
+  & .og-links a {
+    font-size: var(--fs-1);
+    text-decoration: underline wavy var(--c-accent); text-decoration-thickness: 1.5px; text-underline-offset: 0.3em;
+    transition: text-underline-offset var(--motion-duration) var(--motion-easing);
+    &:hover { text-underline-offset: 0.45em; }
+  }
+
+  & .og-foot { padding-block: calc(var(--space-unit) * 5); font-size: var(--fs-n1); color: var(--c-muted); }
+
+  @container (min-width: 720px) {
+    & .og-hero { grid-template-columns: minmax(0, 3fr) minmax(0, 2fr); align-items: center; }
+    & .og-art { order: 0; height: clamp(14rem, 30cqi, 24rem); }
+    & .og-projects { grid-template-columns: 1fr 1fr; column-gap: calc(var(--space-unit) * 6); }
+    & .og-projects > li:nth-child(even) { margin-top: 10cqi; }
+  }
+}

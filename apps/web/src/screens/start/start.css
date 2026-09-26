@@ -1,0 +1,16 @@
+/* 첫 화면: 무료로 시작하기 (가입·로그인) */
+.st {
+  --iv-bg: #FAFAF8; --iv-surface: #FFFFFF; --iv-text: #1A1A1A; --iv-muted: #5C5C5C;
+  --iv-line: #D9D6CF; --iv-accent: #2745D6; --iv-accent-soft: #ECEFFD; --iv-danger: #B3261E;
+  display: grid; place-items: center; min-height: 80vh; padding: 1.5rem 0;
+  font-family: "Pretendard Variable", Pretendard, system-ui, sans-serif; color: var(--iv-text);
+}
+.st-card {
+  width: min(100%, 30rem); display: grid; gap: 1rem; padding: clamp(1.25rem, 5vw, 2rem);
+  border: 1px solid var(--iv-line); border-radius: 16px; background: var(--iv-surface);
+}
+.st-kicker { margin: 0; font-size: 0.875rem; color: var(--iv-muted); }
+.st-title { margin: 0; font-size: clamp(1.75rem, 6vw, 2.25rem); line-height: 1.2; letter-spacing: -0.02em; }
+.st-points { margin: 0; padding-inline-start: 1.25rem; display: grid; gap: 0.25rem; color: var(--iv-muted); }
+.st-nowrap { white-space: nowrap; }
+.st-minor { display: grid; gap: 0.5rem; padding-top: 0.75rem; border-top: 1px dashed var(--iv-line); }
