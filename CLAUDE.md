@@ -38,7 +38,8 @@
 완료: Claude 3안 평가 세트(`workers/app/eval/directions/`, 페르소나 24명) — 무료 파일럿(규칙 엔진)까지. 유료 실행(v1 low·v2 medium)은 API 키·하네스 승인 뒤.
 완료: 블루펜슬 편집기 옮기기 1단계 — 개성 포인트 6종(`src/templates/addons.js`), 분위기 프리셋 4종(`src/data/moodPresets.js`), 글꼴 12종(`fonts.js`). 편집기 "디자인 다듬기"에서 켜고, 발행 사이트에도 같게 나온다.
 완료: 블루펜슬 2단계 — 편집 캔버스(`src/screens/editor/EditCanvas.jsx`): 데스크톱·태블릿·모바일, 미리보기에서 이름·한 줄 소개·소개글·작업 제목·설명을 그 자리에서 고치기, 작업·링크를 누르면 입력 칸으로.
-다음: 블루펜슬 3단계(표시하기·대화로 고치기, Claude는 내용·토큰·개성 포인트 변경만) → 3안 평가 유료 실행 → 모델·effort 확정 → 인터뷰 자유 입력 해석 → 남은 grammar 템플릿.
+완료: 블루펜슬 3단계 — Claude로 다듬기: 캔버스 "메모" 모드(누른 곳에 번호 메모) + "Claude에게 부탁하기"(`AskPanel.jsx`) → `/api/ai/edit` → 변경 목록만 받아 검사 후 적용, 모두 되돌리기. 키가 없으면 안내만.
+다음: 3안 평가 유료 실행 → 인터뷰 자유 입력 해석 → 남은 grammar 템플릿 → 모델·effort 확정 → 인터뷰 자유 입력 해석 → 남은 grammar 템플릿.
 공개 전 필수: 개인정보처리방침에 Claude(Anthropic) 전송 항목 명시, 보호자 동의 철회 기능(동의 페이지에 "언제든 철회" 안내가 있음), Resend 계정·도메인 SPF/DKIM, Turnstile 화면 위젯(서버 검증 자리는 있음), 이용약관·개인정보처리방침, 계정 삭제.
 남은 grammar 4종(swiss·bento·retro-web·experimental)은 가까운 템플릿으로 대체 렌더링 중(근거 문장에 명시). 자주 선택되면 같은 구조로 추가(썸네일 `src/thumbnails/`가 설계 스케치).
 미정: 축 확신도가 신호 개수만 반영(서로 어긋난 신호도 확신도↑). 지금은 A/B·확인 문장이 "확신도×치우침"으로 우회 중 — `AxisEstimate`에 분산을 넣을지 결정 필요.
@@ -99,7 +100,9 @@
 - 시스템 프롬프트는 요청마다 같은 바이트(prompt caching). 날짜·사용자 정보를 넣지 말 것. 출력 스키마(`OUTPUT_SCHEMA`)도 고정 — 바꾸면 캐시가 깨진다.
 - 앱의 `generateDirections`는 동기화 상태가 로그인+나이 확인일 때만 서버를 부르고, 받은 결과도 `acceptAiDirections`로 한 번 더 검사한다.
 - `Direction.source`: ai / mixed(일부를 규칙으로) / 없음(규칙). 호출 기록은 D1 `ai_calls`(토큰 수·결과·바꾼 곳만, 사용자 글 없음).
-- 검증: `npm run test:ai`(37개 — 가짜 Anthropic 서버로 실제 호출 0, 별도 wrangler dev :8797을 띄웠다 끔).
+- 다듬기(`src/engine/aiEdits.js`): Claude는 `{ reply, ops: [{ target, value }] }`만 낸다. target은 스키마 enum(글 칸·일부 토큰·`addon.ID`), 배치·링크·이미지는 대상에 없다. `acceptAiEdits`가 글자 수·글꼴 허용 목록·범위·hex·대비 게이트·개성 포인트 조건을 검사하고, 서버가 통과시킨 ops를 앱이 자기 초안에 다시 검사해 적용한다(되돌리기용으로 이전 초안 보관). 디자인 변경은 기존 edit 신호로 DNA에 남는다. 이미지 참조·링크 주소는 보내지 않고, 글 속 연락처는 가린다.
+- 사용량 제한은 종류별: 3안 `AI_USER_HOURLY`(기본 10), 다듬기 `AI_EDIT_HOURLY`(기본 30), 전체 하루 `AI_DAILY_LIMIT`.
+- 검증: `npm run test:ai`(56개 — 다듬기 포함 — 가짜 Anthropic 서버로 실제 호출 0, 별도 wrangler dev :8797을 띄웠다 끔).
 
 ## 3안 평가 (`workers/app/eval/directions/`)
 - 페르소나 24명(`cases.json`: 명확·모순·말 적음·모호한 말·hard 제약·인젝션). 각자 인터뷰 답 + 인터뷰에 다 드러나지 않는 "진짜 취향"(truth·persona). A/B·확인 질문 답은 truth로 시뮬레이션(`lib.mjs`의 `interviewFor`).
