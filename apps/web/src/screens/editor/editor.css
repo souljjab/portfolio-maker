@@ -175,3 +175,4 @@
 .vp-list { display: grid; gap: 0.375rem; margin: 0; padding: 0; list-style: none; max-height: 18rem; overflow: auto; }
 .vp-list li { display: flex; flex-wrap: wrap; align-items: center; justify-content: space-between; gap: 0.5rem; padding-block: 0.25rem; border-bottom: 1px solid var(--iv-line); }
 .vp-list .iv-btn { min-height: 32px; padding: 0 0.625rem; font-size: 0.8125rem; }
+.ask-off { margin: 0; padding: 0.5rem 0.75rem; border-radius: 8px; background: #FFF7EC; color: #5A3200; }

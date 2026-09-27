@@ -34,6 +34,7 @@ function publicUser(u) {
     // 보호자가 동의를 철회해서 "동의 전"으로 돌아온 상태 (화면에서 안내)
     guardianWithdrawn: u.age_status === "pending_guardian" && Boolean(u.guardian_withdrawn_at),
     deletionScheduledAt: u.deletion_requested_at ? u.deletion_requested_at + DELETION_GRACE : null,
+    aiEnabled: !u.ai_opt_out, // AI 추천·다듬기 (계정 설정, 기본 켜짐)
   };
 }
 
@@ -139,6 +140,16 @@ export async function me(request, env) {
   return json({ ok: true, user: s ? publicUser(s.user) : null, csrfToken: s?.csrf ?? null });
 }
 
+// POST /api/account/ai { enabled } — AI 추천·다듬기 켜기/끄기 (끄면 서버도 AI 호출을 거부)
+export async function setAi(request, env) {
+  const { session, error } = await requireSession(request, env);
+  if (error) return error;
+  const body = await readJson(request);
+  if (typeof body?.enabled !== "boolean") return fail(400, "켜기·끄기를 골라 주세요.");
+  await env.DB.prepare("UPDATE users SET ai_opt_out = ? WHERE id = ?").bind(body.enabled ? 0 : 1, session.user.id).run();
+  return json({ ok: true, user: publicUser({ ...session.user, ai_opt_out: body.enabled ? 0 : 1 }) });
+}
+
 // POST /api/auth/logout
 export async function logout(request, env) {
   const { session, error } = await requireSession(request, env);
@@ -216,6 +227,7 @@ export async function guardianPage(request, env) {
 <li>자녀의 이메일: 로그인과 안내 메일에만</li>
 <li>자녀가 직접 쓴 이름·소개·작업·이미지: 자녀가 공개를 고른 사이트에 표시</li>
 <li>보호자님의 이메일: 이 동의 확인에만</li>
+<li>디자인 추천·다듬기를 위해 자녀가 쓴 글 일부가 AI(Anthropic, 미국)로 보내져요. 연락처는 가려서 보내고, 자녀의 계정 설정에서 언제든 끌 수 있어요.</li>
 </ul>
 <p class="muted">동의는 언제든 철회할 수 있어요. 동의하시면 철회 링크를 메일로 보내 드려요. 철회하면 사이트를 내리고 서버에 저장된 자녀의 글·이미지를 지워요.</p>
 <p class="muted">자세한 내용: <a href="${esc(env.APP_ORIGIN)}/privacy.html#p3">개인정보처리방침</a> · <a href="${esc(env.APP_ORIGIN)}/terms.html">이용약관</a></p>

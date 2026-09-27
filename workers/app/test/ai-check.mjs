@@ -309,6 +309,21 @@ try {
   check("다듬기 요청: 연락처 가림·링크 주소 안 보냄", !esent.includes("me@example.com") && !esent.includes("secret-me"));
   reply = () => ({ status: 200, body: message(null, "refusal", { stop_details: { type: "refusal", category: "cyber" } }) });
   check("다듬기: 거절이면 502", (await goEdit(user)).status === 502);
+
+  // ── AI 끄기 (계정 설정)
+  const aiUser = await device(`ai-off-${stamp}@example.com`);
+  check("AI 설정 기본값은 켜짐", (await aiUser("GET", "/api/auth/me")).data.user.aiEnabled === true);
+  check("AI 설정: 형식이 틀리면 거부", (await aiUser("POST", "/api/account/ai", { body: { enabled: "no" } })).status === 400);
+  check("AI 설정: CSRF 없으면 거부", (await aiUser("POST", "/api/account/ai", { body: { enabled: false }, noCsrf: true })).status === 403);
+  const off = await aiUser("POST", "/api/account/ai", { body: { enabled: false } });
+  check("AI 끄기", off.status === 200 && off.data.user.aiEnabled === false && (await aiUser("GET", "/api/auth/me")).data.user.aiEnabled === false);
+  const beforeOff = seen.length;
+  check("끄면 3안·다듬기 모두 서버가 거부하고 Claude를 부르지 않음",
+    (await aiUser("POST", "/api/ai/directions", { body: { dna } })).status === 403
+    && (await aiUser("POST", "/api/ai/edit", { body: editBody })).status === 403 && seen.length === beforeOff);
+  reply = () => ({ status: 200, body: message(goodOutput()) });
+  await aiUser("POST", "/api/account/ai", { body: { enabled: true } });
+  check("다시 켜면 동작", (await aiUser("POST", "/api/ai/directions", { body: { dna } })).status === 200 && seen.length === beforeOff + 1);
 } finally {
   stop();
 }

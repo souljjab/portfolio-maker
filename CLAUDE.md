@@ -43,7 +43,8 @@
 완료: 보호자 동의 철회·계정 삭제(`workers/app/src/account.js`) — 철회는 동의 완료 메일·페이지의 링크(버튼을 눌러야 철회) → 사이트·서버 데이터 삭제, 계정은 "동의 전"으로. 삭제는 이메일 입력 확인 → 사이트 즉시 내림 → 7일 뒤 매일 Cron이 정리, 그 사이 취소 가능.
 다음: 3안 평가 유료 실행 → 인터뷰 자유 입력 해석 → 남은 grammar 템플릿 → 모델·effort 확정 → 인터뷰 자유 입력 해석 → 남은 grammar 템플릿.
 완료: 이용약관·개인정보처리방침 초안(`apps/web/terms.html`·`privacy.html`, 가입 화면·랜딩·보호자 동의 페이지에 링크). 노란 [ ] 표시는 운영자 정보·외부 업체 정책 확인 필요.
-공개 전 필수: 약관·방침의 [ ] 채우기 + 법률 검토, AI 이용 거부 방법 정하기(방침 5항 — 지금은 끄는 설정 없음), Resend 계정·도메인 SPF/DKIM, Turnstile 화면 위젯(서버 검증 자리는 있음).
+완료: AI 추천·다듬기 끄기(계정 설정 `users.ai_opt_out`, 기본 켜짐) — 끄면 3안은 규칙 엔진, 다듬기 막힘, 서버도 거부.
+공개 전 필수: 약관·방침의 [ ] 채우기 + 법률 검토, Resend 계정·도메인 SPF/DKIM, Turnstile 화면 위젯(서버 검증 자리는 있음).
 남은 grammar 4종(swiss·bento·retro-web·experimental)은 가까운 템플릿으로 대체 렌더링 중(근거 문장에 명시). 자주 선택되면 같은 구조로 추가(썸네일 `src/thumbnails/`가 설계 스케치).
 미정: 축 확신도가 신호 개수만 반영(서로 어긋난 신호도 확신도↑). 지금은 A/B·확인 문장이 "확신도×치우침"으로 우회 중 — `AxisEstimate`에 분산을 넣을지 결정 필요.
 
@@ -104,7 +105,7 @@
 ## Claude 구조 (`src/engine/aiDirections.js`, `workers/app/src/ai.js`)
 - 프롬프트·출력 스키마·입력 정리(`normalizeDna`·`summarizeDna`)·출력 검증(`acceptAiDirections`)은 순수 함수 한 곳에. 서버는 render 번들로, 앱과 평가는 소스로 같은 코드를 쓴다 — 프롬프트를 고치면 `build:render` 다시.
 - 시스템 프롬프트는 요청마다 같은 바이트(prompt caching). 날짜·사용자 정보를 넣지 말 것. 출력 스키마(`OUTPUT_SCHEMA`)도 고정 — 바꾸면 캐시가 깨진다.
-- 앱의 `generateDirections`는 동기화 상태가 로그인+나이 확인일 때만 서버를 부르고, 받은 결과도 `acceptAiDirections`로 한 번 더 검사한다.
+- 앱의 `generateDirections`는 동기화 상태가 로그인+나이 확인이고 계정의 `aiEnabled`가 꺼져 있지 않을 때만 서버를 부르고, 받은 결과도 `acceptAiDirections`로 한 번 더 검사한다. AI를 끈 계정은 서버(`callClaude`)도 403.
 - `Direction.source`: ai / mixed(일부를 규칙으로) / 없음(규칙). 호출 기록은 D1 `ai_calls`(토큰 수·결과·바꾼 곳만, 사용자 글 없음).
 - 다듬기(`src/engine/aiEdits.js`): Claude는 `{ reply, ops: [{ target, value }] }`만 낸다. target은 스키마 enum(글 칸·일부 토큰·`addon.ID`), 배치·링크·이미지는 대상에 없다. `acceptAiEdits`가 글자 수·글꼴 허용 목록·범위·hex·대비 게이트·개성 포인트 조건을 검사하고, 서버가 통과시킨 ops를 앱이 자기 초안에 다시 검사해 적용한다(되돌리기용으로 이전 초안 보관). 디자인 변경은 기존 edit 신호로 DNA에 남는다. 이미지 참조·링크 주소는 보내지 않고, 글 속 연락처는 가린다.
 - 사용량 제한은 종류별: 3안 `AI_USER_HOURLY`(기본 10), 다듬기 `AI_EDIT_HOURLY`(기본 30), 전체 하루 `AI_DAILY_LIMIT`.

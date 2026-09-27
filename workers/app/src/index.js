@@ -3,7 +3,7 @@
  * (wrangler.jsonc의 run_worker_first가 /api/* 만 이 코드로 보낸다)
  */
 import { fail } from "./lib/http.js";
-import { startLogin, verifyLogin, me, logout, setAge, guardianPage, guardianConsent, guardianWithdrawPage, guardianWithdraw } from "./auth.js";
+import { startLogin, verifyLogin, me, logout, setAge, setAi, guardianPage, guardianConsent, guardianWithdrawPage, guardianWithdraw } from "./auth.js";
 import { uploadImage, checkSlug, mySite, publish, unpublish } from "./publish.js";
 import { getDraft, putDraft, getImage, listVersions, getVersion, createVersion } from "./drafts.js";
 import { aiDirections, aiEdit } from "./ai.js";
@@ -15,6 +15,7 @@ const ROUTES = {
   "GET /api/auth/me": me,
   "POST /api/auth/logout": logout,
   "POST /api/account/age": setAge,
+  "POST /api/account/ai": setAi,
   "GET /api/guardian/consent": guardianPage,
   "POST /api/guardian/consent": guardianConsent,
   "GET /api/guardian/withdraw": guardianWithdrawPage,

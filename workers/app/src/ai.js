@@ -27,6 +27,7 @@ async function callClaude(request, env, spec) {
   const { session, error } = await requireSession(request, env);
   if (error) return { error };
   if (!canUse(session.user)) return { error: fail(403, "나이 확인(보호자 동의)이 끝나면 쓸 수 있어요.") };
+  if (session.user.ai_opt_out) return { error: fail(403, "AI를 꺼 두셨어요. 계정 설정에서 켤 수 있어요.") };
   if (!env.ANTHROPIC_API_KEY) return { error: fail(503, "AI 연결이 아직 설정되지 않았어요.") };
   const body = await readJson(request, spec.bodyLimit);
   const input = body ? spec.parse(body) : null;

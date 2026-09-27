@@ -1,5 +1,5 @@
 import { useEffect, useRef, useState } from "react";
-import { getAccount, requestLoginCode, verifyLoginCode, setAccountAge, logout, onAccountChange, requestAccountDeletion, cancelAccountDeletion } from "../../api/index.js";
+import { getAccount, requestLoginCode, verifyLoginCode, setAccountAge, logout, onAccountChange, requestAccountDeletion, cancelAccountDeletion, setAiEnabled } from "../../api/index.js";
 
 const day = (t) => new Date(t).toLocaleDateString("ko-KR", { month: "long", day: "numeric", weekday: "short" });
 
@@ -111,6 +111,25 @@ export default function AccountStep({ onChange, intro = "발행하려면 로그�
         </div>
       </form>
     </details>
+  );
+
+  const toggleAi = (enabled) => run(async () => {
+    const r = await setAiEnabled(enabled);
+    if (!r.ok) return setError(r.reason);
+    setInfo(enabled ? "AI 추천·다듬기를 켰어요." : "AI 추천·다듬기를 껐어요. 디자인 추천은 AI 없이 만들어요.");
+  });
+  const aiSetting = user && (
+    <div className="pb-ai">
+      <label className="pb-ai-toggle">
+        <input type="checkbox" checked={user.aiEnabled !== false} disabled={busy} onChange={(e) => toggleAi(e.target.checked)}
+          aria-describedby={`${idPrefix}-ai-desc`} />
+        AI 추천·다듬기 쓰기
+      </label>
+      <p id={`${idPrefix}-ai-desc`} className="iv-meta iv-left">
+        켜 두면 디자인 방향 추천과 “Claude에게 부탁하기”에 AI(Anthropic, 미국)를 써요. 내가 쓴 글 일부를 연락처를 가린 채 보내고, 링크·이미지는 보내지 않아요.
+        끄면 AI 없이 추천해요. <a href="/privacy.html#p5" target="_blank" rel="noopener">자세히</a>
+      </p>
+    </div>
   );
 
   const refresh = () => run(async () => {
@@ -244,6 +263,7 @@ export default function AccountStep({ onChange, intro = "발행하려면 로그�
   return (
     <div className="pb-account">
       <p className="pb-good">{user.email} 로 로그인했어요.</p>
+      {aiSetting}
       {signOutButton}
       {deletion}
       {messages}

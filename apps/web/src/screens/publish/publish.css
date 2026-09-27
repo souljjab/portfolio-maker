@@ -49,3 +49,9 @@
 .pb-delacct > summary { min-height: 32px; display: inline-flex; align-items: center; color: var(--iv-danger); font-weight: 600; cursor: pointer; }
 .pb-delacct[open] { display: grid; gap: 0.5rem; }
 .pb-del { color: var(--iv-danger); border-color: var(--iv-danger); }
+
+/* AI 설정 */
+.pb-ai { display: grid; gap: 0.25rem; padding: 0.625rem 0.75rem; border: 1px solid var(--iv-line); border-radius: 10px; }
+.pb-ai-toggle { display: inline-flex; align-items: center; gap: 0.5rem; min-height: 32px; font-weight: 600; cursor: pointer; }
+.pb-ai-toggle input { width: 1.125rem; height: 1.125rem; accent-color: var(--iv-accent); }
+.pb-ai p { margin: 0; }

@@ -1,5 +1,5 @@
 import { useEffect, useMemo, useRef, useState } from "react";
-import { loadDraft, saveDraft, uploadImage, loadInterview, saveInterview, requestAiEdit, saveVersion, loadVersion } from "../../api/index.js";
+import { loadDraft, saveDraft, uploadImage, loadInterview, saveInterview, requestAiEdit, saveVersion, loadVersion, getCurrentAccount, onAccountChange } from "../../api/index.js";
 import { acceptAiEdits } from "../../engine/aiEdits.js";
 import { tokenEdits } from "../../engine/edits.js";
 import { replayAnswers } from "../../engine/replay.js";
@@ -49,6 +49,8 @@ export default function Editor({ onGoInterview, onPublish, initialFocus }) {
   const [askMessage, setAskMessage] = useState("");
   const [askBusy, setAskBusy] = useState(false);
   const [askResult, setAskResult] = useState(null); // { reply, changes, skipped, before } | { error }
+  const [aiOff, setAiOff] = useState(() => getCurrentAccount()?.aiEnabled === false); // 계정 설정에서 AI를 끔
+  useEffect(() => onAccountChange((u) => setAiOff(u?.aiEnabled === false)), []);
   const [versionsKey, setVersionsKey] = useState(0); // 버전을 저장하면 목록을 다시 불러온다
   const lastSnap = useRef({ at: null, json: "" }); // 자동 버전(편집 10분마다) 기준 — 첫 자동 저장부터 잰다
   const [, setFocusTick] = useState(0); // 캔버스에서 칸을 눌렀을 때 다시 그려 focus 이동 effect를 돌린다
@@ -424,7 +426,7 @@ export default function Editor({ onGoInterview, onPublish, initialFocus }) {
           )}
           <AskPanel notes={notes} onRemoveNote={(i) => setNotes((n) => n.filter((_, k) => k !== i))}
             message={askMessage} onMessage={setAskMessage} busy={askBusy} onAsk={askClaude}
-            result={askResult} onUndo={undoClaude} snippet={canvasSnippet} />
+            result={askResult} onUndo={undoClaude} snippet={canvasSnippet} aiOff={aiOff} />
           <VersionPanel onSave={saveNow} onRestore={restoreVersion} refreshKey={versionsKey} />
         </aside>
       </div>

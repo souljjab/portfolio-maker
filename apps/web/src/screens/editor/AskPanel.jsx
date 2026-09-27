@@ -10,15 +10,17 @@ const SUGGESTIONS = ["전체 분위기를 조금 더 따뜻하게", "첫 화면 
  * Claude는 글·색·글꼴·크기·개성 포인트만 바꿀 수 있다(배치·링크·이미지는 그대로).
  * @param {{ notes: {kind?, target?, targets?, to?, request}[], onRemoveNote: (i) => void, message: string, onMessage: (v) => void,
  *           busy: boolean, onAsk: () => void, result: null | { reply, changes, skipped, error? }, onUndo: () => void,
- *           snippet: (field) => string }} props
+ *           snippet: (field) => string, aiOff?: boolean }} props
+ *   aiOff: 계정 설정에서 AI를 끈 상태 — 부탁 칸을 막고 켜는 곳을 알려 준다
  */
-export default function AskPanel({ notes, onRemoveNote, message, onMessage, busy, onAsk, result, onUndo, snippet }) {
+export default function AskPanel({ notes, onRemoveNote, message, onMessage, busy, onAsk, result, onUndo, snippet, aiOff = false }) {
   const id = useId();
-  const canAsk = !busy && (notes.length > 0 || message.trim().length > 0);
+  const canAsk = !aiOff && !busy && (notes.length > 0 || message.trim().length > 0);
 
   return (
     <section className="ask" aria-labelledby={`${id}-h`}>
       <h2 id={`${id}-h`} className="ask-h">Claude에게 부탁하기</h2>
+      {aiOff && <p className="ask-off" role="note">AI를 꺼 두셨어요. 위쪽 “계정”에서 “AI 추천·다듬기 쓰기”를 켜면 부탁할 수 있어요.</p>}
       <p className="iv-meta iv-left">위 미리보기에서 “메모”를 누르고 칸을 누르거나 영역·펜·화살표로 표시하거나, 아래에 페이지 전체에 대한 부탁을 적어 주세요. 글·색·글꼴·크기·개성 포인트를 바꿔 줘요. 배치·링크·이미지는 그대로예요.</p>
 
       {notes.length > 0 && (
@@ -43,11 +45,11 @@ export default function AskPanel({ notes, onRemoveNote, message, onMessage, busy
 
       <div className="ask-field">
         <label htmlFor={`${id}-msg`} className="pb-label">페이지 전체에 부탁하기 (선택)</label>
-        <textarea id={`${id}-msg`} rows={2} maxLength={500} value={message} placeholder="예: 조금 더 차분하고 믿음직하게"
+        <textarea id={`${id}-msg`} rows={2} maxLength={500} value={message} placeholder="예: 조금 더 차분하고 믿음직하게" disabled={aiOff}
           onChange={(e) => onMessage(e.target.value)} />
         <div className="ask-sugs" role="group" aria-label="부탁 예시">
           {SUGGESTIONS.map((s) => (
-            <button key={s} type="button" className="iv-chip ask-sug" onClick={() => onMessage(s)}>{s}</button>
+            <button key={s} type="button" className="iv-chip ask-sug" disabled={aiOff} onClick={() => onMessage(s)}>{s}</button>
           ))}
         </div>
       </div>

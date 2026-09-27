@@ -41,7 +41,7 @@ export async function interpretIntent(text) {
  */
 export async function generateDirections(dna) {
   const available = Object.keys(TEMPLATES);
-  if (ACTIVE.includes(syncStatus.state)) {
+  if (ACTIVE.includes(syncStatus.state) && currentUser?.aiEnabled !== false) {
     const r = await apiFetch("/api/ai/directions", { method: "POST", body: { dna } });
     if (r.ok && Array.isArray(r.directions)) {
       const byKind = Object.fromEntries(r.directions.map((d) => [d?.kind, d]));
@@ -61,6 +61,7 @@ export async function generateDirections(dna) {
  */
 export async function requestAiEdit({ portfolio, notes, message }) {
   if (!ACTIVE.includes(syncStatus.state)) return { ok: false, reason: "나이 확인(보호자 동의)이 끝나면 Claude에게 부탁할 수 있어요." };
+  if (currentUser?.aiEnabled === false) return { ok: false, reason: "AI를 꺼 두셨어요. 위쪽 “계정”에서 켤 수 있어요." };
   const slim = { ...portfolio, projects: portfolio.projects.map((p) => ({ ...p, cover: null })) };
   return apiFetch("/api/ai/edit", { method: "POST", body: { portfolio: slim, notes, message } });
 }
@@ -207,8 +208,9 @@ async function apiFetch(path, { method = "GET", body } = {}) {
 }
 
 const accountListeners = new Set();
+let currentUser = null; // 마지막으로 알게 된 계정 (AI 설정 등 화면 밖 판단에 씀)
 let writesLocked = false; // 로그아웃 뒤: 초안·인터뷰 저장을 받지 않는다
-function emitAccount(user) { for (const fn of accountListeners) fn(user); }
+function emitAccount(user) { currentUser = user; for (const fn of accountListeners) fn(user); }
 
 /**
  * 로그인 상태가 바뀔 때(로그인·나이 확인·로그아웃) 알림. 앱은 로그인한 사람만 쓸 수 있어서 첫 화면 전환에 쓴다.
@@ -217,6 +219,11 @@ function emitAccount(user) { for (const fn of accountListeners) fn(user); }
 export function onAccountChange(fn) {
   accountListeners.add(fn);
   return () => accountListeners.delete(fn);
+}
+
+/** 마지막으로 알게 된 계정 (서버에 다시 묻지 않음) — 화면 첫 렌더링에서 AI 설정 등을 바로 알기 위해 */
+export function getCurrentAccount() {
+  return currentUser;
 }
 
 /** 지금 로그인한 계정. @returns {Promise<{ ok: boolean, user: null | { email, ageStatus, canPublish, guardianEmail }, reason?: string }>} */
@@ -251,6 +258,13 @@ export async function setAccountAge({ over14, guardianEmail }) {
 export async function requestAccountDeletion(confirmEmail) {
   const r = await apiFetch("/api/account/delete", { method: "POST", body: { confirmEmail } });
   if (r.ok) await getAccount(); // 계정 상태(삭제 예정일)를 화면들에 알린다
+  return r;
+}
+
+/** AI 추천·다듬기 켜기/끄기 (계정 설정, 모든 기기에 적용). 끄면 3안은 규칙 기반 추천만 */
+export async function setAiEnabled(enabled) {
+  const r = await apiFetch("/api/account/ai", { method: "POST", body: { enabled } });
+  if (r.ok) emitAccount(r.user);
   return r;
 }
 
