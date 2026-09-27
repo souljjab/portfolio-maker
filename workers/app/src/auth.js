@@ -41,11 +41,16 @@ function publicUser(u) {
 async function verifyTurnstile(env, token, ip) {
   if (!env.TURNSTILE_SECRET) return true; // 설정 전(로컬 개발 등)에는 생략
   if (!token) return false;
-  const r = await fetch("https://challenges.cloudflare.com/turnstile/v0/siteverify", {
-    method: "POST",
-    body: new URLSearchParams({ secret: env.TURNSTILE_SECRET, response: token, remoteip: ip }),
-  });
-  return (await r.json().catch(() => ({}))).success === true;
+  try {
+    const r = await fetch("https://challenges.cloudflare.com/turnstile/v0/siteverify", {
+      method: "POST",
+      body: new URLSearchParams({ secret: env.TURNSTILE_SECRET, response: token, remoteip: ip }),
+      signal: AbortSignal.timeout(5000), // 확인이 늦어져도 로그인이 멈추지 않게 (실패로 처리)
+    });
+    return (await r.json().catch(() => ({}))).success === true;
+  } catch {
+    return false;
+  }
 }
 
 /** 요청의 세션과 사용자 (없으면 null) */
@@ -75,7 +80,7 @@ export async function startLogin(request, env) {
   const email = normalizeEmail(body?.email);
   if (!email) return fail(400, "이메일 주소를 확인해 주세요.");
   const ip = clientIp(request);
-  if (!(await verifyTurnstile(env, body?.turnstileToken, ip))) return fail(400, "잠시 뒤 다시 시도해 주세요.");
+  if (!(await verifyTurnstile(env, body?.turnstileToken, ip))) return fail(400, "자동 가입 방지 확인이 끝나지 않았어요. 확인을 다시 한 뒤 시도해 주세요.");
 
   const now = Date.now();
   await env.DB.prepare("DELETE FROM login_codes WHERE created_at < ?").bind(now - DAY).run();

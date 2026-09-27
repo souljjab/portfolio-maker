@@ -233,9 +233,12 @@ export async function getAccount() {
   return r;
 }
 
-/** 로그인 코드 메일 보내기 (가입도 같은 흐름). 로컬 개발에선 devCode가 함께 온다 */
-export async function requestLoginCode(email) {
-  return apiFetch("/api/auth/start", { method: "POST", body: { email } });
+/**
+ * 로그인 코드 메일 보내기 (가입도 같은 흐름). 로컬 개발에선 devCode가 함께 온다.
+ * @param {string|null} turnstileToken  Turnstile 확인 토큰 (사이트 키가 없는 환경에선 null — 서버도 검사하지 않음)
+ */
+export async function requestLoginCode(email, turnstileToken = null) {
+  return apiFetch("/api/auth/start", { method: "POST", body: { email, turnstileToken } });
 }
 
 export async function verifyLoginCode(email, code) {

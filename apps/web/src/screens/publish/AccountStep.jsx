@@ -1,4 +1,5 @@
 import { useEffect, useRef, useState } from "react";
+import Turnstile from "../Turnstile.jsx";
 import { getAccount, requestLoginCode, verifyLoginCode, setAccountAge, logout, onAccountChange, requestAccountDeletion, cancelAccountDeletion, setAiEnabled } from "../../api/index.js";
 
 const day = (t) => new Date(t).toLocaleDateString("ko-KR", { month: "long", day: "numeric", weekday: "short" });
@@ -22,6 +23,9 @@ export default function AccountStep({ onChange, intro = "발행하려면 로그�
   const [dev, setDev] = useState(null);         // 로컬 개발에서만 서버가 주는 코드·링크
   const [confirmOut, setConfirmOut] = useState(false); // 서버에 없는 작업이 지워진다는 확인
   const [delEmail, setDelEmail] = useState("");         // 계정 삭제 확인용으로 직접 입력한 이메일
+  const [tsToken, setTsToken] = useState(null);         // Turnstile 확인 토큰 (한 번 쓰면 새로 받음)
+  const [tsReset, setTsReset] = useState(0);
+  const needTs = Boolean(import.meta.env.VITE_TURNSTILE_SITE_KEY);
   const codeRef = useRef(null);
 
   const update = (u) => { setUser(u); onChange(u); };
@@ -44,7 +48,8 @@ export default function AccountStep({ onChange, intro = "발행하려면 로그�
   const sendCode = (e) => {
     e.preventDefault();
     run(async () => {
-      const r = await requestLoginCode(email);
+      const r = await requestLoginCode(email, tsToken);
+      setTsReset((k) => k + 1); // 토큰은 한 번만 쓸 수 있다 — 다음 요청(코드 다시 받기)을 위해 새로 확인
       if (!r.ok) return setError(r.reason);
       setSent(true); setCode("");
       setInfo(`${email.trim()} 로 6자리 코드를 보냈어요. 메일이 안 보이면 스팸함도 확인해 주세요.`);
@@ -177,7 +182,7 @@ export default function AccountStep({ onChange, intro = "발행하려면 로그�
             <div className="pb-inline">
               <input id={`${idPrefix}-email`} type="email" inputMode="email" autoComplete="email" required maxLength={254}
                 value={email} onChange={(e) => setEmail(e.target.value)} />
-              <button type="submit" className="iv-btn iv-btn-primary" disabled={busy || !email.trim()}>{busy ? "보내는 중…" : "코드 받기"}</button>
+              <button type="submit" className="iv-btn iv-btn-primary" disabled={busy || !email.trim() || (needTs && !tsToken)}>{busy ? "보내는 중…" : "코드 받기"}</button>
             </div>
           </form>
         ) : (
@@ -191,12 +196,13 @@ export default function AccountStep({ onChange, intro = "발행하려면 로그�
             </div>
             <p id={`${idPrefix}-code-hint`} className="iv-meta iv-left">코드는 10분 동안 쓸 수 있어요.</p>
             <div className="pb-files">
-              <button type="button" className="iv-btn iv-btn-quiet" onClick={sendCode} disabled={busy}>코드 다시 받기</button>
+              <button type="button" className="iv-btn iv-btn-quiet" onClick={sendCode} disabled={busy || (needTs && !tsToken)}>코드 다시 받기</button>
               <button type="button" className="iv-btn iv-btn-quiet" onClick={() => { setSent(false); setInfo(""); setError(""); setDev(null); }}>이메일 바꾸기</button>
             </div>
             {dev?.code && <p className="pb-dev">개발 모드: 코드 {dev.code}</p>}
           </form>
         )}
+        <Turnstile onToken={setTsToken} resetKey={tsReset} />
         {messages}
       </div>
     );

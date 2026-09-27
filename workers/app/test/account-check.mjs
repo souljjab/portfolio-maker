@@ -22,7 +22,7 @@ async function login(email, age = "over14") {
     const ct = r.headers.get("content-type") ?? "";
     return { status: r.status, data: ct.includes("json") ? await r.json() : await r.text() };
   };
-  const s = await call("POST", "/api/auth/start", { body: { email } });
+  const s = await call("POST", "/api/auth/start", { body: { turnstileToken: "XXXX.DUMMY.TOKEN.XXXX", email } });
   const v = await call("POST", "/api/auth/verify", { body: { email, code: s.data.devCode } });
   csrf = v.data.csrfToken;
   let ageRes;

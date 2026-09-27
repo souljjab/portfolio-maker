@@ -15,7 +15,7 @@
 - 라우터: `cd workers/router && npm install && npm run dev` (:8788, 발행한 사이트를 `http://주소.localhost:8788`로 열기) / 배포 `npm run deploy` (배포 전 `YOUR_DOMAIN` 교체)
 - API(로컬): `cd workers/app && npm install && cp .dev.vars.example .dev.vars && npm run db:migrate:local && npm run dev` (:8787). 프론트 개발 서버가 `/api`를 여기로 넘긴다. 메일은 보내지 않고 터미널에 출력, 코드·동의 링크는 화면의 "개발 모드" 칸에도 표시. `npm run dev`가 서버용 렌더러(`build:render`)를 먼저 만든다
 - 두 Worker는 로컬 저장소 `.wrangler/state`(저장소 루트)를 함께 쓴다(`--persist-to`). 검증: API·라우터를 띄운 상태에서 `workers/app`의 `npm run test:auth`, `npm run test:publish`, `npm run test:sync`, `npm run test:account`, `npm run test:ai`
-- API 배포 전: `YOUR_DOMAIN`·D1 id 교체, `wrangler secret put CODE_PEPPER`·`RESEND_API_KEY`, `npm run db:migrate:remote`, 먼저 `apps/web` 빌드
+- API 배포 전: `YOUR_DOMAIN`·D1 id 교체, `wrangler secret put CODE_PEPPER`·`RESEND_API_KEY`·`TURNSTILE_SECRET`, `npm run db:migrate:remote`, 먼저 `apps/web` 빌드(`.env`의 `VITE_TURNSTILE_SITE_KEY`를 실제 사이트 키로)
 - 개발 서버 첫 화면의 "템플릿 비교" 탭: 템플릿 × 토큰 조합을 패널 3개로 나란히 보고 대비 검사 결과 확인
 - 페이지: `index.html` = 앱(배포 시 `app.도메인`), `landing.html` = 서비스 랜딩(루트 도메인, 개발 중엔 `/landing.html`), `terms.html`·`privacy.html` = 약관·방침(정적). 개인정보를 새로 모으거나 보관 기간·외부 전송이 바뀌면 `privacy.html`도 같이 고칠 것. 랜딩의 "시작하기" 주소는 `apps/web/.env`의 `VITE_APP_URL`(배포 때 `https://app.도메인`)
 
@@ -44,7 +44,8 @@
 다음: 3안 평가 유료 실행 → 인터뷰 자유 입력 해석 → 남은 grammar 템플릿 → 모델·effort 확정 → 인터뷰 자유 입력 해석 → 남은 grammar 템플릿.
 완료: 이용약관·개인정보처리방침 초안(`apps/web/terms.html`·`privacy.html`, 가입 화면·랜딩·보호자 동의 페이지에 링크). 노란 [ ] 표시는 운영자 정보·외부 업체 정책 확인 필요.
 완료: AI 추천·다듬기 끄기(계정 설정 `users.ai_opt_out`, 기본 켜짐) — 끄면 3안은 규칙 엔진, 다듬기 막힘, 서버도 거부.
-공개 전 필수: 약관·방침의 [ ] 채우기 + 법률 검토, Resend 계정·도메인 SPF/DKIM, Turnstile 화면 위젯(서버 검증 자리는 있음).
+완료: Turnstile 위젯(`src/screens/Turnstile.jsx`) — 가입·로그인 코드 요청 전에 확인, 토큰은 요청마다 새로. 로컬은 Cloudflare 테스트 키.
+공개 전 필수: 약관·방침의 [ ] 채우기 + 법률 검토, Resend 계정·도메인 SPF/DKIM, Turnstile 실제 키 발급(`VITE_TURNSTILE_SITE_KEY`는 빌드 때, `TURNSTILE_SECRET`은 wrangler secret).
 남은 grammar 4종(swiss·bento·retro-web·experimental)은 가까운 템플릿으로 대체 렌더링 중(근거 문장에 명시). 자주 선택되면 같은 구조로 추가(썸네일 `src/thumbnails/`가 설계 스케치).
 미정: 축 확신도가 신호 개수만 반영(서로 어긋난 신호도 확신도↑). 지금은 A/B·확인 문장이 "확신도×치우침"으로 우회 중 — `AxisEstimate`에 분산을 넣을지 결정 필요.
 
@@ -123,6 +124,7 @@
 - 만 14세 미만은 보호자 동의 전에도 "먼저 만들어 보기"로 들어올 수 있다 — 작업은 이 기기에만, 동기화·Claude·발행은 동의 뒤.
 - 로그아웃은 이 기기의 초안·인터뷰·이미지를 지운다(같은 기기의 다른 계정이 넘겨받지 않게). 서버에 다 안 올라간 작업이 있으면 먼저 확인받는다. 로그아웃 뒤엔 `writesLocked`로 닫히는 화면의 자동 저장도 막는다.
 - 이 기기에 다른 계정의 작업(`pf:sync.email`이 다름)이 남아 있으면 올리지 않고 비운 뒤 서버 내용을 받는다. 계정 없이 만든 예전 작업(email null)만 로그인한 계정으로 이어 올린다.
+- 코드 요청은 Turnstile 토큰이 필요하다(`TURNSTILE_SECRET`이 있을 때만 서버가 확인, 5초 시간 제한·실패 시 거부). 테스트는 모두 더미 토큰(`XXXX.DUMMY.TOKEN.XXXX`)을 보내므로 비밀 키가 있든 없든 통과. `npm run test:turnstile`은 별도 wrangler dev(:8796)를 Cloudflare 테스트 비밀 키로 띄워 실제 확인까지 본다(인터넷 필요).
 - 코드는 HMAC(pepper, email:code)만 저장, 10분·5번 시도·새 코드 받으면 이전 코드 무효, 이메일당 시간당 5번·IP당 20번. 코드 요청 응답은 가입 여부와 무관하게 같다.
 - 상태를 바꾸는 요청은 `Origin === APP_ORIGIN` + (세션이 있으면) `X-CSRF-Token`. 프론트는 `api/index.js`의 `apiFetch`가 CSRF 헤더를 붙인다.
 - `EXPOSE_DEV_CODE=1`(응답에 코드·동의 링크 포함)은 `.dev.vars`에만. 배포 설정에 넣지 말 것.

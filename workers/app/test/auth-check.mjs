@@ -23,10 +23,10 @@ async function call(method, path, { body, origin = ORIGIN, csrf, form, useCookie
 const email = `test${Date.now()}@example.com`;
 
 // 1. 코드 요청
-check("Origin 없는 요청 거부", (await call("POST", "/api/auth/start", { body: { email }, origin: null })).status === 403);
-check("다른 Origin 거부(사용자 서브도메인 흉내)", (await call("POST", "/api/auth/start", { body: { email }, origin: "http://evil.localhost:5173" })).status === 403);
-check("잘못된 이메일 거부", (await call("POST", "/api/auth/start", { body: { email: "not-an-email" } })).status === 400);
-const start = await call("POST", "/api/auth/start", { body: { email: `  ${email.toUpperCase()} ` } });
+check("Origin 없는 요청 거부", (await call("POST", "/api/auth/start", { body: { turnstileToken: "XXXX.DUMMY.TOKEN.XXXX", email }, origin: null })).status === 403);
+check("다른 Origin 거부(사용자 서브도메인 흉내)", (await call("POST", "/api/auth/start", { body: { turnstileToken: "XXXX.DUMMY.TOKEN.XXXX", email }, origin: "http://evil.localhost:5173" })).status === 403);
+check("잘못된 이메일 거부", (await call("POST", "/api/auth/start", { body: { turnstileToken: "XXXX.DUMMY.TOKEN.XXXX", email: "not-an-email" } })).status === 400);
+const start = await call("POST", "/api/auth/start", { body: { turnstileToken: "XXXX.DUMMY.TOKEN.XXXX", email: `  ${email.toUpperCase()} ` } });
 check("코드 요청 성공(대소문자·공백 정리)", start.status === 200 && /^\d{6}$/.test(start.data.devCode ?? ""), JSON.stringify(start.data));
 const code = start.data.devCode;
 
@@ -82,14 +82,14 @@ check("로그아웃한 세션으로는 로그인 안 됨", (await call("GET", "/
 
 // 7. 시도 횟수·요청 횟수 제한
 const email2 = `limit${Date.now()}@example.com`;
-const s2 = await call("POST", "/api/auth/start", { body: { email: email2 } });
+const s2 = await call("POST", "/api/auth/start", { body: { turnstileToken: "XXXX.DUMMY.TOKEN.XXXX", email: email2 } });
 const bad = s2.data.devCode === "000000" ? "111111" : "000000";
 let last;
 for (let i = 0; i < 5; i++) last = await call("POST", "/api/auth/verify", { body: { email: email2, code: bad } });
 const locked = await call("POST", "/api/auth/verify", { body: { email: email2, code: s2.data.devCode } });
 check("5번 틀리면 맞는 코드도 거부", locked.status === 429, locked.data.reason);
-for (let i = 0; i < 4; i++) await call("POST", "/api/auth/start", { body: { email: email2 } });
-const sixth = await call("POST", "/api/auth/start", { body: { email: email2 } });
+for (let i = 0; i < 4; i++) await call("POST", "/api/auth/start", { body: { turnstileToken: "XXXX.DUMMY.TOKEN.XXXX", email: email2 } });
+const sixth = await call("POST", "/api/auth/start", { body: { turnstileToken: "XXXX.DUMMY.TOKEN.XXXX", email: email2 } });
 check("이메일당 시간당 5번 제한", sixth.status === 429, sixth.data.reason);
 check("없는 주소 404", (await call("GET", "/api/nope")).status === 404);
 

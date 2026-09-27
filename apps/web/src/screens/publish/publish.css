@@ -55,3 +55,8 @@
 .pb-ai-toggle { display: inline-flex; align-items: center; gap: 0.5rem; min-height: 32px; font-weight: 600; cursor: pointer; }
 .pb-ai-toggle input { width: 1.125rem; height: 1.125rem; accent-color: var(--iv-accent); }
 .pb-ai p { margin: 0; }
+
+/* 자동 가입 방지 (Turnstile) */
+.ts { display: grid; gap: 0.25rem; }
+.ts-cap { margin: 0; font-size: 0.8125rem; }
+.ts-box { min-height: 65px; }

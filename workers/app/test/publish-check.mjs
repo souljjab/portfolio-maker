@@ -21,7 +21,7 @@ async function login(email, over14 = true) {
     if (sc) cookie = sc.split(";")[0];
     return { status: r.status, data: await r.json() };
   };
-  const s = await call("POST", "/api/auth/start", { body: { email } });
+  const s = await call("POST", "/api/auth/start", { body: { turnstileToken: "XXXX.DUMMY.TOKEN.XXXX", email } });
   const v = await call("POST", "/api/auth/verify", { body: { email, code: s.data.devCode } });
   csrf = v.data.csrfToken;
   await call("POST", "/api/account/age", { body: over14 ? { over14: true } : { over14: false, guardianEmail: `parent-${email}` } });

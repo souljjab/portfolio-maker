@@ -245,7 +245,7 @@ try {
       return { status: r.status, data: await r.json().catch(() => null) };
     };
     if (email) {
-      const s = await call("POST", "/api/auth/start", { body: { email } });
+      const s = await call("POST", "/api/auth/start", { body: { turnstileToken: "XXXX.DUMMY.TOKEN.XXXX", email } });
       csrf = (await call("POST", "/api/auth/verify", { body: { email, code: s.data.devCode } })).data.csrfToken;
       if (age === "over14") await call("POST", "/api/account/age", { body: { over14: true } });
       if (age === "minor") await call("POST", "/api/account/age", { body: { over14: false, guardianEmail: `parent-${email}` } });

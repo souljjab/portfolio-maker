@@ -11,3 +11,5 @@ CODE_PEPPER=local-dev-pepper-not-a-secret
 LOGIN_IP_LIMIT=1000
 # Claude 3안: 넣으면 로그인·나이 확인한 계정의 3안을 Claude가 만든다(실제 비용 발생). 비워 두면 규칙 엔진만
 # ANTHROPIC_API_KEY=
+# Turnstile(자동 가입 방지) 서버 확인: 비워 두면 검사 생략. Cloudflare 테스트 키 — 1x...AA 항상 통과, 2x...AA 항상 실패
+# TURNSTILE_SECRET=1x0000000000000000000000000000000AA

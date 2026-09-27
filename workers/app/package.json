@@ -14,7 +14,8 @@
     "test:ai": "node test/ai-check.mjs",
     "eval:directions": "node eval/directions/run-eval.mjs --flow ../../.claude/hillclimb/directions",
     "eval:report": "node eval/directions/build-report-lite.mjs ../../.claude/hillclimb/directions",
-    "test:account": "node test/account-check.mjs"
+    "test:account": "node test/account-check.mjs",
+    "test:turnstile": "node test/turnstile-check.mjs"
   },
   "devDependencies": {
     "wrangler": "^4"
