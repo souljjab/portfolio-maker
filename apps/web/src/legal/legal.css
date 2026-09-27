@@ -1,0 +1,27 @@
+/* 이용약관·개인정보처리방침 (정적 문서, 스크립트 없음) */
+:root {
+  --lg-bg: #FAFAF8; --lg-text: #1A1A1A; --lg-muted: #5C5C5C; --lg-line: #D9D6CF; --lg-accent: #2745D6; --lg-soft: #F1EFEA; --lg-draft: #8A4B00;
+}
+* { box-sizing: border-box; }
+body { margin: 0; background: var(--lg-bg); color: var(--lg-text); font: 16px/1.75 "Pretendard Variable", Pretendard, system-ui, sans-serif; word-break: keep-all; overflow-wrap: anywhere; }
+a { color: var(--lg-accent); }
+a:focus-visible { outline: 3px solid var(--lg-accent); outline-offset: 3px; }
+.lg { max-width: 46rem; margin: 0 auto; padding: 2.5rem 16px 4rem; }
+.lg-top { display: flex; flex-wrap: wrap; gap: 0.5rem 1.25rem; align-items: center; margin-bottom: 2rem; font-size: 0.9375rem; }
+.lg-top a { display: inline-flex; min-height: 44px; align-items: center; }
+h1 { margin: 0 0 0.5rem; font-size: clamp(1.75rem, 5vw, 2.25rem); line-height: 1.25; letter-spacing: -0.02em; }
+h2 { margin: 2.5rem 0 0.75rem; font-size: 1.25rem; line-height: 1.4; }
+h3 { margin: 1.5rem 0 0.5rem; font-size: 1.0625rem; }
+p, ul, ol { margin: 0 0 1rem; }
+ul, ol { padding-left: 1.25rem; }
+li + li { margin-top: 0.25rem; }
+.lg-meta { color: var(--lg-muted); }
+.lg-draft { padding: 0.75rem 1rem; border: 1px solid var(--lg-draft); border-radius: 10px; background: #FFF7EC; color: #5A3200; }
+.lg-toc { padding: 1rem 1.25rem; border-radius: 12px; background: var(--lg-soft); }
+.lg-toc ol { margin: 0; columns: 2 16rem; }
+.lg-table { width: 100%; margin: 0 0 1rem; border-collapse: collapse; font-size: 0.9375rem; }
+.lg-table th, .lg-table td { padding: 0.5rem 0.625rem; border: 1px solid var(--lg-line); text-align: left; vertical-align: top; }
+.lg-table th { background: var(--lg-soft); font-weight: 600; }
+.lg-scroll { overflow-x: auto; }
+.todo { padding: 0 0.2em; border-radius: 3px; background: #FFE8C2; color: #5A3200; }
+.lg-foot { margin-top: 3rem; padding-top: 1rem; border-top: 1px solid var(--lg-line); color: var(--lg-muted); font-size: 0.9375rem; }

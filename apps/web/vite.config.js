@@ -6,7 +6,7 @@ import { defineConfig } from 'vite'
 process.env.VITE_APP_URL ??= '/'
 
 // https://vite.dev/config/
-// 두 페이지: index.html = 앱(app.도메인), landing.html = 서비스 랜딩(루트 도메인)
+// 페이지: index.html = 앱(app.도메인), landing.html = 서비스 랜딩(루트 도메인), terms.html·privacy.html = 약관·개인정보처리방침(정적)
 export default defineConfig({
   plugins: [react()],
   server: {
@@ -18,6 +18,8 @@ export default defineConfig({
       input: {
         main: resolve(import.meta.dirname, 'index.html'),
         landing: resolve(import.meta.dirname, 'landing.html'),
+        terms: resolve(import.meta.dirname, 'terms.html'),
+        privacy: resolve(import.meta.dirname, 'privacy.html'),
       },
     },
   },

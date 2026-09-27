@@ -17,7 +17,7 @@
 - 두 Worker는 로컬 저장소 `.wrangler/state`(저장소 루트)를 함께 쓴다(`--persist-to`). 검증: API·라우터를 띄운 상태에서 `workers/app`의 `npm run test:auth`, `npm run test:publish`, `npm run test:sync`, `npm run test:account`, `npm run test:ai`
 - API 배포 전: `YOUR_DOMAIN`·D1 id 교체, `wrangler secret put CODE_PEPPER`·`RESEND_API_KEY`, `npm run db:migrate:remote`, 먼저 `apps/web` 빌드
 - 개발 서버 첫 화면의 "템플릿 비교" 탭: 템플릿 × 토큰 조합을 패널 3개로 나란히 보고 대비 검사 결과 확인
-- 두 페이지: `index.html` = 앱(배포 시 `app.도메인`), `landing.html` = 서비스 랜딩(루트 도메인, 개발 중엔 `/landing.html`). 랜딩의 "시작하기" 주소는 `apps/web/.env`의 `VITE_APP_URL`(배포 때 `https://app.도메인`)
+- 페이지: `index.html` = 앱(배포 시 `app.도메인`), `landing.html` = 서비스 랜딩(루트 도메인, 개발 중엔 `/landing.html`), `terms.html`·`privacy.html` = 약관·방침(정적). 개인정보를 새로 모으거나 보관 기간·외부 전송이 바뀌면 `privacy.html`도 같이 고칠 것. 랜딩의 "시작하기" 주소는 `apps/web/.env`의 `VITE_APP_URL`(배포 때 `https://app.도메인`)
 
 ## 현재 단계
 프론트엔드 우선 개발 중. 백엔드는 나중에 붙인다.
@@ -42,7 +42,8 @@
 완료: 블루펜슬 나머지 — 표시 도구(영역·펜·화살표 → Claude 메모, `MarkLayer.jsx`), 맞춤 슬라이더("조절" 모드 + `tokens.tune`, `templates/tune.js`, `TunePanel.jsx`), 버전 기록(서버 D1 `draft_versions` 최근 30개, `VersionPanel.jsx`).
 완료: 보호자 동의 철회·계정 삭제(`workers/app/src/account.js`) — 철회는 동의 완료 메일·페이지의 링크(버튼을 눌러야 철회) → 사이트·서버 데이터 삭제, 계정은 "동의 전"으로. 삭제는 이메일 입력 확인 → 사이트 즉시 내림 → 7일 뒤 매일 Cron이 정리, 그 사이 취소 가능.
 다음: 3안 평가 유료 실행 → 인터뷰 자유 입력 해석 → 남은 grammar 템플릿 → 모델·effort 확정 → 인터뷰 자유 입력 해석 → 남은 grammar 템플릿.
-공개 전 필수: Resend 계정·도메인 SPF/DKIM, Turnstile 화면 위젯(서버 검증 자리는 있음), 이용약관·개인정보처리방침(Claude(Anthropic) 전송 항목, 동의 철회·계정 삭제 시 파기 절차 포함).
+완료: 이용약관·개인정보처리방침 초안(`apps/web/terms.html`·`privacy.html`, 가입 화면·랜딩·보호자 동의 페이지에 링크). 노란 [ ] 표시는 운영자 정보·외부 업체 정책 확인 필요.
+공개 전 필수: 약관·방침의 [ ] 채우기 + 법률 검토, AI 이용 거부 방법 정하기(방침 5항 — 지금은 끄는 설정 없음), Resend 계정·도메인 SPF/DKIM, Turnstile 화면 위젯(서버 검증 자리는 있음).
 남은 grammar 4종(swiss·bento·retro-web·experimental)은 가까운 템플릿으로 대체 렌더링 중(근거 문장에 명시). 자주 선택되면 같은 구조로 추가(썸네일 `src/thumbnails/`가 설계 스케치).
 미정: 축 확신도가 신호 개수만 반영(서로 어긋난 신호도 확신도↑). 지금은 A/B·확인 문장이 "확신도×치우침"으로 우회 중 — `AxisEstimate`에 분산을 넣을지 결정 필요.
 
@@ -126,6 +127,7 @@
 - `EXPOSE_DEV_CODE=1`(응답에 코드·동의 링크 포함)은 `.dev.vars`에만. 배포 설정에 넣지 말 것.
 - 서버 검증: `npm run test:auth`(30개 — Origin·CSRF·코드 시도·요청 제한·보호자 동의·쿠키 속성), `npm run test:publish`(29개 — 이미지 형식·주소 소유·서버 재검사·CSP·304·주소 이동·비공개), `npm run test:sync`(28개 — 버전 충돌·다른 기기·이미지 소유·보호자 동의 전 차단·버전 기록), `npm run test:account`(28개 — 삭제 확인·유예·취소·정리 작업·동의 철회·다시 동의).
 - 계정 수명(`src/account.js`): `removeSite`(사이트) · `removeUserContent`(사이트·초안·버전·이미지 R2·AI 기록, 계정은 남김) · `purgeAccount`(+ 로그인 코드·사용자 행, 나머지는 CASCADE). 새 테이블·R2 경로를 추가하면 여기에도 추가할 것.
+- 매일 Cron은 `cleanupExpired`(로그인 코드·요청 IP 24시간, 만료 세션·보호자 요청 링크)도 돌린다 — 개인정보처리방침의 보존 기간과 맞춘 값.
 - 계정 삭제는 `users.deletion_requested_at` + 7일(`DELETION_GRACE`). 매일 Cron(`wrangler.jsonc` triggers → `scheduled`)이 `purgeDueAccounts`. 유예 중 발행 금지, 앱 위쪽에 취소 배너. 로컬 검사는 `/api/dev/purge { days }`(EXPOSE_DEV_CODE=1에서만).
 - 보호자 동의 철회: 동의할 때 만료 없는 철회 토큰(해시만 `users.guardian_withdraw_hash`)을 만들어 완료 페이지·메일로. 철회하면 `pending_guardian` + `guardian_withdrawn_at`, `removeUserContent`. 아이는 계정 칸에서 다시 요청할 수 있다.
 - 로컬은 모든 요청이 한 IP라 `.dev.vars`의 `LOGIN_IP_LIMIT=1000`으로 코드 요청 IP 제한을 풀어 둔다(배포 기본 20).

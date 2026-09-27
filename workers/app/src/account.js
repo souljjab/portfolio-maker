@@ -39,6 +39,19 @@ export async function purgeAccount(env, user) {
   ]);
 }
 
+/**
+ * 기한이 지난 기록 정리 (매일 Cron) — 개인정보처리방침의 보존 기간과 맞춘다.
+ * 로그인 코드(해시·요청 IP)는 24시간 뒤, 만료된 세션·보호자 동의 요청 링크는 바로.
+ * (코드 요청 제한은 최근 1시간만 보므로 24시간 뒤 지워도 영향 없음)
+ */
+export async function cleanupExpired(env, now = Date.now()) {
+  await env.DB.batch([
+    env.DB.prepare("DELETE FROM login_codes WHERE created_at < ?").bind(now - DAY),
+    env.DB.prepare("DELETE FROM sessions WHERE expires_at < ?").bind(now),
+    env.DB.prepare("DELETE FROM guardian_tokens WHERE expires_at < ?").bind(now),
+  ]);
+}
+
 /** 유예가 끝난 계정 정리 (매일 Cron). @returns 지운 계정 수 */
 export async function purgeDueAccounts(env, now = Date.now()) {
   const { results } = await env.DB.prepare("SELECT id, email FROM users WHERE deletion_requested_at IS NOT NULL AND deletion_requested_at <= ? LIMIT 100")
@@ -73,5 +86,7 @@ export async function devPurge(request, env) {
   if (env.EXPOSE_DEV_CODE !== "1") return fail(404, "없는 주소예요.");
   const body = await readJson(request);
   const days = Number(body?.days) || 0;
-  return json({ ok: true, purged: await purgeDueAccounts(env, Date.now() + days * DAY) });
+  const now = Date.now() + days * DAY;
+  await cleanupExpired(env, now);
+  return json({ ok: true, purged: await purgeDueAccounts(env, now) });
 }

@@ -29,6 +29,10 @@ export default function StartGate({ onChange, onContinueMinor }) {
             <button type="button" className="iv-btn iv-btn-primary pb-start" onClick={onContinueMinor}>먼저 만들어 보기</button>
           </div>
         </AccountStep>
+        <p className="iv-meta iv-left st-legal">
+          가입하면 <a href="/terms.html" target="_blank" rel="noopener">이용약관</a>에 동의하고 <a href="/privacy.html" target="_blank" rel="noopener">개인정보처리방침</a>을 확인한 것으로 봐요.
+          만 14세 미만은 보호자 동의가 필요해요.
+        </p>
       </div>
     </main>
   );

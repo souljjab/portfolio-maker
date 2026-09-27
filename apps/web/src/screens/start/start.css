@@ -14,3 +14,5 @@
 .st-points { margin: 0; padding-inline-start: 1.25rem; display: grid; gap: 0.25rem; color: var(--iv-muted); }
 .st-nowrap { white-space: nowrap; }
 .st-minor { display: grid; gap: 0.5rem; padding-top: 0.75rem; border-top: 1px dashed var(--iv-line); }
+.st-legal { margin: 0; font-size: 0.8125rem; }
+.st-legal a { color: inherit; text-decoration: underline; text-underline-offset: 2px; }

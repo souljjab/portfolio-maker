@@ -218,6 +218,7 @@ export async function guardianPage(request, env) {
 <li>보호자님의 이메일: 이 동의 확인에만</li>
 </ul>
 <p class="muted">동의는 언제든 철회할 수 있어요. 동의하시면 철회 링크를 메일로 보내 드려요. 철회하면 사이트를 내리고 서버에 저장된 자녀의 글·이미지를 지워요.</p>
+<p class="muted">자세한 내용: <a href="${esc(env.APP_ORIGIN)}/privacy.html#p3">개인정보처리방침</a> · <a href="${esc(env.APP_ORIGIN)}/terms.html">이용약관</a></p>
 <form method="post" action="/api/guardian/consent"><input type="hidden" name="token" value="${esc(token)}"><button type="submit">동의합니다</button></form>
 <p class="muted">동의하지 않으시면 이 창을 닫으시면 돼요.</p>`);
 }

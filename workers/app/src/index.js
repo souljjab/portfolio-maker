@@ -7,7 +7,7 @@ import { startLogin, verifyLogin, me, logout, setAge, guardianPage, guardianCons
 import { uploadImage, checkSlug, mySite, publish, unpublish } from "./publish.js";
 import { getDraft, putDraft, getImage, listVersions, getVersion, createVersion } from "./drafts.js";
 import { aiDirections, aiEdit } from "./ai.js";
-import { requestDeletion, cancelDeletion, devPurge, purgeDueAccounts } from "./account.js";
+import { requestDeletion, cancelDeletion, devPurge, purgeDueAccounts, cleanupExpired } from "./account.js";
 
 const ROUTES = {
   "POST /api/auth/start": startLogin,
@@ -50,8 +50,12 @@ export default {
       return fail(500, "서버에서 문제가 생겼어요. 잠시 뒤 다시 시도해 주세요.");
     }
   },
-  // 매일 한 번(wrangler.jsonc triggers): 삭제 유예 7일이 지난 계정 정리
+  // 매일 한 번(wrangler.jsonc triggers): 기한 지난 기록 정리 + 삭제 유예 7일이 지난 계정 정리
   async scheduled(event, env, ctx) {
-    ctx.waitUntil(purgeDueAccounts(env).then((n) => { if (n) console.log(`[purge] 계정 ${n}개 삭제`); }));
+    ctx.waitUntil((async () => {
+      await cleanupExpired(env);
+      const n = await purgeDueAccounts(env);
+      if (n) console.log(`[purge] 계정 ${n}개 삭제`);
+    })());
   },
 };
