@@ -60,6 +60,7 @@ export const AXES = [
  * @property {{ sm: number, lg: number }} radius
  * @property {{ duration: number, easing: string, level: "none"|"subtle"|"expressive" }} motion
  * @property {string[]=} addons  개성 포인트 id (templates/addons.js 허용 목록, 편집기에서 사용자가 켬)
+ * @property {{ heroSize?: number, headlineSize?: number, cardGap?: number, contentWidth?: number, leading?: number }=} tune  영역별 조절값 (templates/tune.js, 없으면 기본값)
  */
 
 /**

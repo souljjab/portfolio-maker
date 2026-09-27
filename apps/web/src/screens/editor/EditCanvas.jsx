@@ -1,10 +1,11 @@
 import { useCallback, useEffect, useLayoutEffect, useRef, useState } from "react";
 import { fieldLabel } from "./fields.js";
 import MarkLayer from "./MarkLayer.jsx";
+import TunePanel from "./TunePanel.jsx";
 
 const DEVICES = { desktop: { label: "데스크톱", w: 1280 }, tablet: { label: "태블릿", w: 820 }, mobile: { label: "모바일", w: 390 } };
 /** 누르면: edit 그 자리에서 고치기 / note Claude에게 줄 메모 달기 / view 보기만(링크 새 창) */
-const MODES = { edit: "고치기", note: "메모", view: "보기만" };
+const MODES = { edit: "고치기", tune: "조절", note: "메모", view: "보기만" };
 /** 메모 도구 (블루펜슬): 칸 누르기 / 영역 드래그 / 펜 / 화살표 */
 const NOTE_TOOLS = { click: "누르기", region: "영역", draw: "펜", arrow: "화살표" };
 const NOTE_HINT = {
@@ -16,6 +17,7 @@ const NOTE_HINT = {
 const HINT = {
   edit: "글자를 누르면 그 자리에서 고쳐요. 작업·링크를 누르면 왼쪽 입력 칸으로 가요.",
   note: "바꾸고 싶은 곳을 누르고 메모를 남기세요. 아래에서 Claude에게 한 번에 부탁할 수 있어요.",
+  tune: "크기·간격을 바꿀 곳을 누르세요. 빈 곳을 누르면 페이지 전체를 조절해요.",
   view: "보기만 하는 중이에요. 링크는 새 창으로 열려요.",
 };
 
@@ -39,15 +41,18 @@ const EDIT_CSS = `[data-pf-field]{cursor:pointer}
  * @param {{ html: string, device: keyof DEVICES, onDevice: (d) => void,
  *           getValue: (field) => string, maxLength: (field) => number,
  *           onInline: (field, value) => void, onPick: (field) => void,
- *           notes: {kind, target?, targets?, to?, request, mark?}[], onAddNote: (note) => void }} props
+ *           notes: {kind, target?, targets?, to?, request, mark?}[], onAddNote: (note) => void,
+ *           template: string, tokens, onTune: (path, value) => void }} props
  */
-export default function EditCanvas({ html, device, onDevice, getValue, maxLength, onInline, onPick, notes, onAddNote }) {
+export default function EditCanvas({ html, device, onDevice, getValue, maxLength, onInline, onPick, notes, onAddNote, template, tokens, onTune }) {
   const boxRef = useRef(null);
   const frameRef = useRef(null);
   const scroll = useRef(0);
   const [boxW, setBoxW] = useState(600);
   const [mode, setMode] = useState("edit");
   const [noteTool, setNoteTool] = useState("click");
+  const [tuneField, setTuneField] = useState("page"); // 조절 모드에서 고른 곳
+  const pickTune = useCallback((f) => setTuneField(f), []);
   const [scrollTop, setScrollTop] = useState(0); // 표시(영역·펜·화살표)를 스크롤에 맞춰 다시 그리기 위해
   const [inline, setInline] = useState(null);   // { html, kind: "edit"|"note", field, value, rect, mark? }
   const picked = useRef(null);                   // 지금 고치는 칸의 요소 (윤곽선 지우기용)
@@ -65,7 +70,7 @@ export default function EditCanvas({ html, device, onDevice, getValue, maxLength
 
   // 최신 값을 iframe 이벤트에서 쓰기 위한 참조 (문서가 바뀔 때마다 다시 붙이지 않게)
   const live = useRef({});
-  useLayoutEffect(() => { live.current = { mode, noteTool, scale, getValue, onPick, html }; });
+  useLayoutEffect(() => { live.current = { mode, noteTool, scale, getValue, onPick, html, pickTune }; });
 
   /** 메모 번호 배지를 문서에 표시 (다시 그려질 때마다) */
   const markNotes = useCallback(() => {
@@ -109,6 +114,14 @@ export default function EditCanvas({ html, device, onDevice, getValue, maxLength
       if (m === "view" || (m === "note" && live.current.noteTool !== "click")) return;
       e.preventDefault(); // 고치기·메모 중엔 링크를 열지 않는다
       const el = e.target.closest?.("[data-pf-field]");
+      if (m === "tune") {
+        // 조절: 누른 칸(없으면 페이지 전체)을 골라 표시만 한다
+        picked.current?.classList.remove("pf-ed-on");
+        picked.current = el;
+        el?.classList.add("pf-ed-on");
+        live.current.pickTune(el?.dataset.pfField ?? "page");
+        return;
+      }
       if (!el) return;
       const field = el.dataset.pfField;
       if (m === "edit" && !INLINE.test(field)) { live.current.onPick(field); return; }
@@ -138,7 +151,9 @@ export default function EditCanvas({ html, device, onDevice, getValue, maxLength
   // 문서가 새로 그려지면(내용·디자인 변경) 열려 있던 칸은 닫힌 것으로 본다
   const open = inline && inline.html === html ? inline : null;
   // 칸을 닫으면 윤곽선도 지운다
-  useEffect(() => { if (!open) { picked.current?.classList.remove("pf-ed-on"); picked.current = null; } }, [open]);
+  useEffect(() => { if (!open && mode !== "tune") { picked.current?.classList.remove("pf-ed-on"); picked.current = null; } }, [open, mode]);
+  /** 조절 중: 미리보기 문서의 CSS 변수를 바로 바꿔 즉시 보여 준다(저장은 onTune → 다시 그리기) */
+  const liveVar = (cssVar, value) => frameRef.current?.contentDocument?.querySelector(".pf")?.style.setProperty(cssVar, String(value));
 
   const commit = () => {
     if (open?.kind === "edit" && open.value !== getValue(open.field)) onInline(open.field, open.value);
@@ -183,6 +198,7 @@ export default function EditCanvas({ html, device, onDevice, getValue, maxLength
         </div>
       )}
       <p className="iv-meta iv-left ec-hint">{mode === "note" ? NOTE_HINT[noteTool] : HINT[mode]}</p>
+      {mode === "tune" && tokens && <TunePanel field={tuneField} template={template} tokens={tokens} onChange={onTune} onLive={liveVar} />}
       <div ref={boxRef} className="ec-box" style={{ height: viewH }}>
         <iframe
           ref={frameRef}

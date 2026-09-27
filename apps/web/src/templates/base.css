@@ -5,7 +5,7 @@
   color: var(--c-text);
   font-family: var(--f-body);
   font-size: var(--fs-0);
-  line-height: 1.65;
+  line-height: var(--tune-leading, 1.65);
   word-break: keep-all;
   overflow-wrap: anywhere;
   -webkit-font-smoothing: antialiased;
@@ -15,6 +15,11 @@
 .pf :where(ul, ol) { padding: 0; list-style: none; }
 .pf a { color: inherit; }
 .pf :focus-visible { outline: 3px solid var(--c-accent); outline-offset: 3px; }
+
+/* 영역별 조절값: 첫 화면 제목·한 줄 소개 크기 (templates/tune.js) */
+.pf .pf-hero-title { zoom: var(--tune-hero, 1); }
+.pf .pf-headline { zoom: var(--tune-headline, 1); }
+.pf .pf-hero-title.pf-headline { zoom: calc(var(--tune-hero, 1) * var(--tune-headline, 1)); }
 
 /* 단독으로 쓰이는 링크: 터치 타깃 기준 24px보다 여유 있게 44px */
 .pf .pf-link { display: inline-flex; align-items: center; min-height: 44px; }

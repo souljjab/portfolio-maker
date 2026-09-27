@@ -6,6 +6,7 @@
 import { applyToAxis, SOURCE_WEIGHT } from "./taste.js";
 import { hexToHsl } from "./color.js";
 import { addonById } from "../templates/addons.js";
+import { TUNE, tuneValue } from "../templates/tune.js";
 
 const lerp = (v, a, b, ta, tb) => Math.round(ta + ((Math.min(Math.max(v, a), b) - a) / (b - a)) * (tb - ta));
 const MOTION_TARGET = { none: 5, subtle: 35, expressive: 75 };
@@ -36,6 +37,11 @@ export function tokenEdits(origin, tokens) {
     ["motion.level", origin.motion.level, tokens.motion.level],
   ];
   const changes = pairs.filter(([, a, b]) => a !== b).map(([key, from, to]) => ({ key, from, to }));
+  // 영역별 조절값 (맞춤 슬라이더)
+  for (const k of Object.keys(TUNE)) {
+    const a = tuneValue(origin, k), b = tuneValue(tokens, k);
+    if (a !== b) changes.push({ key: `tune.${k}`, from: a, to: b });
+  }
   // 개성 포인트: 켠 것·끈 것 (원래 안에는 없으므로 보통 켠 것)
   const had = origin.addons ?? [], has = tokens.addons ?? [];
   for (const id of has) if (!had.includes(id)) changes.push({ key: `addon:${id}`, from: false, to: true });
@@ -56,6 +62,14 @@ export function applyEdits(dna, changes) {
   const quirks = [];
 
   for (const c of changes) {
+    if (c.key.startsWith("tune.")) {
+      const t = TUNE[c.key.slice(5)];
+      if (!t) continue;
+      const [axis, lo, hi] = t.signal;
+      pull(axis, lerp(c.to, t.min, t.max, lo, hi), SOURCE_WEIGHT.edit / 2); // 한 영역만의 조절이라 절반 가중치
+      note(c.key, `${t.label}: ${c.to > c.from ? t.high : t.low}`);
+      continue;
+    }
     if (c.key.startsWith("addon:")) {
       // 개성 포인트는 시그니처 층에 남기고, 켰을 때만 관련 축을 약하게 끌어당긴다(장식 하나로 취향을 단정하지 않게)
       const a = addonById[c.key.slice(6)];

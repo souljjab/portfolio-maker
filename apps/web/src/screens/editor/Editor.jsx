@@ -384,7 +384,14 @@ export default function Editor({ onGoInterview, onPublish, initialFocus }) {
           {html && (
             <EditCanvas html={html} device={device} onDevice={setDevice}
               getValue={canvasValue} maxLength={canvasMax} onInline={canvasInline} onPick={canvasPick}
-              notes={notes} onAddNote={(note) => { setNotes((n) => [...n, note]); setAnnounce(`${notes.length + 1}번 메모를 남겼어요.`); }} />
+              notes={notes} onAddNote={(note) => { setNotes((n) => [...n, note]); setAnnounce(`${notes.length + 1}번 메모를 남겼어요.`); }}
+              template={draft.template} tokens={draft.tokens}
+              onTune={(path, value) => edit((d) => {
+                const [group, key] = path.split(".");
+                if (group === "tune") d.tokens.tune = { ...(d.tokens.tune ?? {}), [key]: value };
+                else d.tokens[group][key] = value;
+                if (path === "radius.lg") d.tokens.radius.sm = Math.round(value * 0.4);
+              })} />
           )}
           <AskPanel notes={notes} onRemoveNote={(i) => setNotes((n) => n.filter((_, k) => k !== i))}
             message={askMessage} onMessage={setAskMessage} busy={askBusy} onAsk={askClaude}

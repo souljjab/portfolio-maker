@@ -52,7 +52,7 @@
   & .bt-project {
     display: grid;
     gap: calc(var(--space-unit) * 2);
-    padding-block: calc(var(--space-unit) * 4);
+    padding-block: calc(var(--space-unit) * 4 * var(--tune-gap, 1));
     border-bottom: 1px solid var(--c-text);
   }
   /* 강조색은 큰 글자(24px 이상, 굵게)에만 — 대비 3:1 기준 */

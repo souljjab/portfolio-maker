@@ -4,7 +4,7 @@
   --qe-gap: clamp(calc(var(--space-section) * 0.45), 14cqi, var(--space-section));
   --qe-measure: 36em;
 
-  & .qe-wrap { max-width: 76rem; margin-inline: auto; padding-inline: var(--qe-gutter); }
+  & .qe-wrap { max-width: calc(76rem * var(--tune-width, 1)); margin-inline: auto; padding-inline: var(--qe-gutter); }
 
   & .qe-top {
     display: flex; justify-content: space-between; align-items: baseline;
@@ -36,7 +36,7 @@
   }
 
   /* 작업 목록: 카드가 아니라 기사 목록 */
-  & .qe-projects { display: grid; gap: var(--qe-gap); }
+  & .qe-projects { display: grid; gap: calc(var(--qe-gap) * var(--tune-gap, 1)); }
   & .qe-project { display: grid; gap: calc(var(--space-unit) * 3); }
   & .qe-meta {
     display: flex; flex-wrap: wrap; gap: 0.25em 1em;

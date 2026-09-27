@@ -3,7 +3,7 @@
   --gl-gutter: clamp(0.75rem, 3cqi, 2.5rem);
   --gl-gap: clamp(calc(var(--space-section) * 0.5), 10cqi, var(--space-section));
 
-  & .gl-wrap { max-width: 96rem; margin-inline: auto; padding-inline: var(--gl-gutter); }
+  & .gl-wrap { max-width: calc(96rem * var(--tune-width, 1)); margin-inline: auto; padding-inline: var(--gl-gutter); }
 
   & .gl-top {
     display: flex; justify-content: space-between; gap: 1rem;
@@ -17,7 +17,7 @@
   & .gl-headline { margin-top: calc(var(--space-unit) * 0.5); max-width: 32em; color: var(--c-muted); }
 
   /* 작품: 화면 폭을 채우는 큰 이미지 + 작은 설명 */
-  & .gl-works { display: grid; gap: var(--gl-gap); padding-bottom: var(--gl-gap); }
+  & .gl-works { display: grid; gap: calc(var(--gl-gap) * var(--tune-gap, 1)); padding-bottom: var(--gl-gap); }
   & .gl-work .pf-cover { aspect-ratio: 3 / 2; border-radius: var(--radius-sm); }
   & .gl-cap {
     display: grid; grid-template-columns: auto minmax(0, 1fr); column-gap: 1em; align-items: baseline;
@@ -47,7 +47,7 @@
     & .gl-info { grid-template-columns: minmax(0, 1fr) minmax(0, 3fr); }
     & .gl-info h2 { padding-top: 0.25em; }
     /* 두 번째 작품부터는 두 점씩 나란히 — 첫 작품만 크게 */
-    & .gl-works { grid-template-columns: 1fr 1fr; column-gap: calc(var(--space-unit) * 3); }
+    & .gl-works { grid-template-columns: 1fr 1fr; column-gap: calc(var(--space-unit) * 3 * var(--tune-gap, 1)); }
     & .gl-works > li:first-child { grid-column: 1 / -1; }
     & .gl-works > li:first-child .pf-cover { aspect-ratio: 16 / 9; }
   }

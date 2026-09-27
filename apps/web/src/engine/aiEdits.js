@@ -15,6 +15,7 @@ import { luminance } from "./contrast.js";
 import { clip, maskPii, DEFAULT_MODEL, DEFAULT_EFFORT } from "./aiDirections.js";
 import { FONTS, BODY_FONT_IDS } from "../templates/fonts.js";
 import { ADDONS, addonById, addonProblem } from "../templates/addons.js";
+import { TUNE, tuneValue } from "../templates/tune.js";
 
 const MOTION_LEVELS = ["none", "subtle", "expressive"];
 /** 메모 종류: element 칸을 눌러 단 메모 / region 드래그한 영역 / draw 펜으로 그은 곳 / arrow 화살표 */
@@ -48,6 +49,10 @@ const TOKEN_TARGETS = {
   "space.section": num(48, 200, 8),
   "radius.lg": num(0, 48),
   "motion.level": (v) => (MOTION_LEVELS.includes(v) ? v : undefined),
+  ...Object.fromEntries(Object.entries(TUNE).map(([k, t]) => [`tune.${k}`, (v) => {
+    const n = Number(v);
+    return Number.isFinite(n) ? +(Math.round(Math.min(t.max, Math.max(t.min, n)) / t.step) * t.step).toFixed(2) : undefined;
+  }])),
 };
 const ADDON_TARGETS = ADDONS.map((a) => `addon.${a.id}`);
 export const EDIT_TARGETS = [...Object.keys(TEXT_TARGETS), ...Object.keys(TOKEN_TARGETS), ...ADDON_TARGETS];
@@ -103,6 +108,7 @@ export function buildEditSystemPrompt() {
 - 색: color.accent, color.bg, color.surface, color.text, color.muted — value는 #RRGGBB.
 - 글꼴: type.display(제목), type.body(본문, 제목 전용 글꼴 제외) — value는 글꼴 이름. 쓸 수 있는 글꼴: ${fonts}.
 - 크기·간격: type.scaleRatio(글자 크기 차이, 1.125~1.618), space.section(섹션 간격 px, 48~200), radius.lg(모서리 px, 0~48), motion.level(none|subtle|expressive).
+- 영역별 조절: ${Object.entries(TUNE).map(([k, t]) => `tune.${k}(${t.label}, ${t.min}~${t.max}, 기본 ${t.def})`).join(", ")}. 한 영역만 바꾸고 싶을 때 쓴다(예: 첫 화면 제목만 더 크게 → tune.heroSize).
 - 개성 포인트: addon.ID — value "on" 또는 "off". 쓸 수 있는 것: ${addons}.
 
 ## 바꿀 수 없는 것
@@ -208,9 +214,11 @@ export function acceptAiEdits(raw, draft) {
       const v = TOKEN_TARGETS[o.target](o.value);
       if (v === undefined) { skipped.push({ target: o.target, reason: "허용되지 않는 값" }); continue; }
       const [group, key] = o.target.split(".");
-      if (t[group][key] === v) continue;
-      accepted.push({ target: o.target, from: t[group][key], to: v });
-      t[group][key] = v;
+      const cur = group === "tune" ? tuneValue(t, key) : t[group][key];
+      if (cur === v) continue;
+      accepted.push({ target: o.target, from: cur, to: v });
+      if (group === "tune") t.tune = { ...(t.tune ?? {}), [key]: v };
+      else t[group][key] = v;
       if (o.target === "color.accent") t.color.onAccent = luminance(v) > 0.18 ? "#111111" : "#FFFFFF";
       if (o.target === "radius.lg") t.radius.sm = Math.round(v * 0.4);
     }
@@ -246,6 +254,7 @@ export function targetLabel(target) {
   const m = /^project\.(\d+)\.(title|summary)$/.exec(target);
   if (m) return `${+m[1] + 1}번째 작업 ${m[2] === "title" ? "제목" : "설명"}`;
   if (target.startsWith("addon.")) return `개성 포인트 ‘${addonById[target.slice(6)]?.label ?? target}’`;
+  if (target.startsWith("tune.")) return TUNE[target.slice(5)]?.label ?? target;
   return {
     name: "이름", headline: "한 줄 소개", bio: "소개글",
     "color.accent": "강조색", "color.bg": "배경색", "color.surface": "카드 배경", "color.text": "글자색", "color.muted": "보조 글자색",

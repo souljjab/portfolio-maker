@@ -160,3 +160,8 @@
 .ml svg { display: block; overflow: visible; }
 .ec-inline { z-index: 3; }
 .ask-kind { display: inline-block; margin-inline-end: 0.375rem; padding: 0 0.375rem; border-radius: 4px; background: #FBE7E2; color: #8A2A16; font-size: 0.75rem; font-weight: 700; }
+
+/* 맞춤 슬라이더 (조절 모드) */
+.tp { display: grid; gap: 0.5rem; padding: 0.75rem; border: 1px solid var(--iv-line); border-radius: 10px; background: var(--iv-surface); }
+.tp-h { margin: 0; font-size: 0.9375rem; }
+.tp-knobs { display: grid; gap: 0.75rem; grid-template-columns: repeat(auto-fit, minmax(min(100%, 14rem), 1fr)); }

@@ -4,7 +4,7 @@
   --wm-gap: clamp(calc(var(--space-section) * 0.5), 11cqi, var(--space-section));
   --wm-shadow: 0 1px 2px rgb(0 0 0 / 0.05), 0 10px 30px rgb(0 0 0 / 0.06);
 
-  & .wm-wrap { max-width: 64rem; margin-inline: auto; padding-inline: var(--wm-gutter); }
+  & .wm-wrap { max-width: calc(64rem * var(--tune-width, 1)); margin-inline: auto; padding-inline: var(--wm-gutter); }
 
   /* 첫 화면: 가운데 모은 프로필 */
   & .wm-hero {
@@ -40,7 +40,7 @@
   }
 
   /* 작업: 둥근 카드 */
-  & .wm-cards { display: grid; gap: calc(var(--space-unit) * 3); grid-template-columns: repeat(auto-fit, minmax(min(100%, 17rem), 1fr)); }
+  & .wm-cards { display: grid; gap: calc(var(--space-unit) * 3 * var(--tune-gap, 1)); grid-template-columns: repeat(auto-fit, minmax(min(100%, 17rem), 1fr)); }
   & .wm-cards > li { display: grid; }
   & .wm-card { overflow: hidden; border-radius: var(--radius-lg); background: var(--c-surface); box-shadow: var(--wm-shadow); }
   & .wm-card .pf-cover { aspect-ratio: 16 / 10; }

@@ -10,7 +10,7 @@
   font-variant-numeric: tabular-nums;
   line-height: 1.55;
 
-  & .tc-wrap { max-width: 84rem; margin-inline: auto; padding-inline: var(--tc-gutter); }
+  & .tc-wrap { max-width: calc(84rem * var(--tune-width, 1)); margin-inline: auto; padding-inline: var(--tc-gutter); }
 
   /* 칸 격자: 각 칸이 1px 테두리를 그림자로 그리고, 1px 틈에서 이웃 칸 선과 겹쳐 한 줄이 된다.
      (빈 칸에는 아무것도 그려지지 않도록 격자 배경은 쓰지 않음) */
@@ -82,6 +82,7 @@
   /* 작업: 같은 크기의 칸이 촘촘히 */
   & .tc-projects { grid-template-columns: repeat(auto-fit, minmax(min(100%, 17rem), 1fr)); }
   & .tc-projects > li { display: grid; }
+  & .tc-projects .tc-project { padding: calc(var(--tc-pad) * var(--tune-gap, 1)); } /* 칸 사이는 1px 선이라 칸 안 여백으로 간격을 조절 */
   & .tc-project {
     display: grid; grid-template-rows: auto auto 1fr auto; gap: calc(var(--space-unit) * 1.5);
     &:hover { background: var(--c-surface); }

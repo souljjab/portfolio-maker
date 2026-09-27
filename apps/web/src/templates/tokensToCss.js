@@ -4,6 +4,7 @@
  * 값이 CSS 선언을 끊고 다른 속성을 끼워 넣지 못하게 하는 것이 목적.
  */
 import { fontStack } from "./fonts.js";
+import { TUNE, tuneValue } from "./tune.js";
 
 const HEX = /^#(?:[0-9a-f]{3}|[0-9a-f]{6})$/i;
 const EASING = /^(?:linear|ease|ease-in|ease-out|ease-in-out|cubic-bezier\(\s*-?[\d.]+\s*(?:,\s*-?[\d.]+\s*){3}\))$/;
@@ -38,6 +39,8 @@ export function tokensToCssVars(tokens) {
     "--motion-duration": m.level === "none" ? "0ms" : `${num(m.duration, 0, 1200, 200)}ms`,
     "--motion-easing": typeof m.easing === "string" && EASING.test(m.easing) ? m.easing : "ease-out",
   };
+  // 영역별 조절값 (범위를 벗어나거나 없으면 기본값)
+  for (const [key, t] of Object.entries(TUNE)) vars[t.css] = String(tuneValue(tokens, key));
   // 글자 크기 단계: --fs-n1(작은 글자), --fs-0(본문) ~ --fs-6. 사용자 확대가 먹도록 rem 단위.
   vars["--fs-n1"] = rem(base / ratio);
   for (let i = 0; i <= 6; i++) vars[`--fs-${i}`] = rem(base * ratio ** i);
