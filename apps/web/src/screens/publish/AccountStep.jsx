@@ -1,5 +1,7 @@
 import { useEffect, useRef, useState } from "react";
-import { getAccount, requestLoginCode, verifyLoginCode, setAccountAge, logout, onAccountChange } from "../../api/index.js";
+import { getAccount, requestLoginCode, verifyLoginCode, setAccountAge, logout, onAccountChange, requestAccountDeletion, cancelAccountDeletion } from "../../api/index.js";
+
+const day = (t) => new Date(t).toLocaleDateString("ko-KR", { month: "long", day: "numeric", weekday: "short" });
 
 /**
  * 계정 단계 — 첫 화면(무료로 시작하기)·발행 화면·동기화 상태 줄에서 함께 쓴다.
@@ -19,6 +21,7 @@ export default function AccountStep({ onChange, intro = "발행하려면 로그�
   const [info, setInfo] = useState("");
   const [dev, setDev] = useState(null);         // 로컬 개발에서만 서버가 주는 코드·링크
   const [confirmOut, setConfirmOut] = useState(false); // 서버에 없는 작업이 지워진다는 확인
+  const [delEmail, setDelEmail] = useState("");         // 계정 삭제 확인용으로 직접 입력한 이메일
   const codeRef = useRef(null);
 
   const update = (u) => { setUser(u); onChange(u); };
@@ -67,6 +70,49 @@ export default function AccountStep({ onChange, intro = "발행하려면 로그�
       update(r.user);
     });
   };
+  const resendGuardian = (e) => {
+    e.preventDefault();
+    run(async () => {
+      const r = await setAccountAge({ over14: false, guardianEmail: guardian });
+      if (!r.ok) return setError(r.reason);
+      setDev(r.devLink ? { link: r.devLink } : null);
+      setInfo("보호자께 동의 요청 메일을 다시 보냈어요.");
+      update(r.user);
+    });
+  };
+  const askDelete = (e) => {
+    e.preventDefault();
+    run(async () => {
+      const r = await requestAccountDeletion(delEmail);
+      if (!r.ok) return setError(r.reason);
+      setDelEmail("");
+      setInfo(`계정 삭제를 예약했어요. ${day(r.deletionScheduledAt)}에 모두 지워지고, 그 전엔 취소할 수 있어요.`);
+    });
+  };
+  const undoDelete = () => run(async () => {
+    const r = await cancelAccountDeletion();
+    if (!r.ok) return setError(r.reason);
+    setInfo("계정 삭제를 취소했어요.");
+  });
+  const deletion = user?.deletionScheduledAt ? (
+    <div className="pb-warn" role="alert">
+      <p>이 계정은 <strong>{day(user.deletionScheduledAt)}</strong>에 삭제돼요. 사이트는 이미 내려갔어요.</p>
+      <button type="button" className="iv-btn iv-btn-quiet pb-start" onClick={undoDelete} disabled={busy}>삭제 취소</button>
+    </div>
+  ) : (
+    <details className="pb-delacct">
+      <summary>계정 삭제</summary>
+      <p className="iv-meta iv-left">사이트를 바로 내리고, 7일 뒤 초안·버전 기록·올린 이미지·계정을 모두 지워요. 7일 안에 다시 로그인하면 취소할 수 있어요. 지우기 전에 발행 화면에서 HTML·JSON으로 내려받아 둘 수 있어요.</p>
+      <form className="pb-form" onSubmit={askDelete} noValidate>
+        <label htmlFor={`${idPrefix}-del`} className="pb-label">확인을 위해 이메일 주소({user?.email})를 입력해 주세요</label>
+        <div className="pb-inline">
+          <input id={`${idPrefix}-del`} type="email" autoComplete="off" value={delEmail} onChange={(e) => setDelEmail(e.target.value)} />
+          <button type="submit" className="iv-btn iv-btn-quiet pb-del" disabled={busy || !delEmail.trim()}>계정 삭제 예약</button>
+        </div>
+      </form>
+    </details>
+  );
+
   const refresh = () => run(async () => {
     const r = await getAccount();
     if (!r.ok) return setError(r.reason);
@@ -171,13 +217,25 @@ export default function AccountStep({ onChange, intro = "발행하려면 로그�
   if (!user.canPublish) {
     return (
       <div className="pb-account">
-        <p>보호자({user.guardianEmail})께 동의 요청 메일을 보냈어요. 보호자가 동의하시면 발행할 수 있어요.</p>
+        {user.guardianWithdrawn ? (
+          <p>보호자께서 동의를 철회하셔서 사이트를 내리고 서버에 저장된 작업을 지웠어요. 이 기기의 작업은 그대로 있어요. 다시 공개하려면 보호자께 동의를 다시 요청해 주세요.</p>
+        ) : (
+          <p>보호자({user.guardianEmail})께 동의 요청 메일을 보냈어요. 보호자가 동의하시면 발행할 수 있어요.</p>
+        )}
         <div className="pb-files">
           <button type="button" className="iv-btn iv-btn-quiet" onClick={refresh} disabled={busy}>동의했는지 다시 확인</button>
         </div>
+        <form className="pb-form" onSubmit={resendGuardian} noValidate>
+          <label htmlFor={`${idPrefix}-guardian2`} className="pb-label">{user.guardianWithdrawn ? "보호자께 다시 요청하기" : "요청 메일 다시 보내기"}</label>
+          <div className="pb-inline">
+            <input id={`${idPrefix}-guardian2`} type="email" inputMode="email" maxLength={254} placeholder="보호자 이메일" value={guardian} onChange={(e) => setGuardian(e.target.value)} />
+            <button type="submit" className="iv-btn iv-btn-quiet" disabled={busy || !guardian.trim()}>보내기</button>
+          </div>
+        </form>
         {signOutButton}
         {children}
         {dev?.link && <p className="pb-dev">개발 모드: <a href={dev.link} target="_blank" rel="noreferrer">보호자 동의 페이지 열기</a></p>}
+        {deletion}
         {messages}
       </div>
     );
@@ -187,6 +245,7 @@ export default function AccountStep({ onChange, intro = "발행하려면 로그�
     <div className="pb-account">
       <p className="pb-good">{user.email} 로 로그인했어요.</p>
       {signOutButton}
+      {deletion}
       {messages}
     </div>
   );

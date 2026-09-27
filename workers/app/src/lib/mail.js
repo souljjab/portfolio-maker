@@ -32,6 +32,22 @@ export function loginCodeMail(to, code) {
   };
 }
 
+export function guardianDoneMail(to, childEmail, link) {
+  return {
+    to,
+    subject: "[포트폴리오 메이커] 자녀의 포트폴리오 공개에 동의하셨어요",
+    text: [
+      "안녕하세요. 포트폴리오 메이커입니다.",
+      "",
+      `${childEmail} 계정의 포트폴리오 공개에 동의해 주셨어요.`,
+      "",
+      "동의는 언제든 철회할 수 있어요. 철회하면 사이트를 내리고 서버에 저장된 자녀의 글·이미지를 지워요.",
+      "철회하려면 아래 주소를 열고 버튼을 눌러 주세요. (이 메일은 보관해 주세요)",
+      link,
+    ].join("\n"),
+  };
+}
+
 export function guardianMail(to, childEmail, link) {
   return {
     to,

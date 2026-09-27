@@ -8,7 +8,7 @@ import Editor from "./screens/editor/Editor.jsx";
 import Publish from "./screens/publish/Publish.jsx";
 import SyncStatus from "./screens/SyncStatus.jsx";
 import StartGate from "./screens/start/StartGate.jsx";
-import { onRemoteApplied, onAccountChange, getAccount } from "./api/index.js";
+import { onRemoteApplied, onAccountChange, getAccount, cancelAccountDeletion } from "./api/index.js";
 
 /**
  * 임시 개발용 셸: 인터뷰 / 편집기 / 발행 / 템플릿 비교 / 엔진 디버그를 탭으로 전환.
@@ -29,7 +29,26 @@ export default function App() {
       </div>
     );
   }
-  return <Workspace />;
+  return (
+    <>
+      {account.deletionScheduledAt && <DeletionBanner at={account.deletionScheduledAt} />}
+      <Workspace />
+    </>
+  );
+}
+
+/** 삭제 예약 중인 계정: 모든 화면 위에 알리고 바로 취소할 수 있게 */
+function DeletionBanner({ at }) {
+  const [busy, setBusy] = useState(false);
+  const date = new Date(at).toLocaleDateString("ko-KR", { month: "long", day: "numeric", weekday: "short" });
+  return (
+    <div role="alert" style={{ maxWidth: 1280, margin: "0 auto", padding: "12px 24px", display: "flex", flexWrap: "wrap", gap: 12, alignItems: "center",
+      background: "#FFF6F5", borderBottom: "1px solid #B3261E", color: "#1A1A1A", fontFamily: "system-ui, sans-serif" }}>
+      <span>이 계정은 <strong>{date}</strong>에 삭제돼요. 사이트는 이미 내려갔고, 발행은 할 수 없어요.</span>
+      <button type="button" disabled={busy} style={{ minHeight: 40, padding: "0 14px", borderRadius: 8, border: "1px solid #B3261E", background: "#fff", color: "#8A1C15", fontWeight: 700, cursor: "pointer" }}
+        onClick={async () => { setBusy(true); await cancelAccountDeletion(); setBusy(false); }}>삭제 취소</button>
+    </div>
+  );
 }
 
 function Workspace() {

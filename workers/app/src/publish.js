@@ -3,6 +3,7 @@
  * 클라이언트가 만든 HTML은 받지 않는다. 받은 내용은 normalizeForPublish로 정리하고 validatePortfolio로 다시 검사.
  * 이미지는 먼저 /api/images로 올리고(형식은 파일 앞 바이트로 확인), 발행 때 사이트 폴더로 복사한다.
  */
+import { removeSite } from "./account.js";
 import {
   renderPortfolioHtml, TEMPLATE_IDS, normalizeForPublish, validatePortfolio, slugProblem, tokensShapeOk,
 } from "./generated/render.js";
@@ -28,7 +29,7 @@ function sniff(b) {
   return null;
 }
 
-async function deletePrefix(env, prefix, keep = new Set()) {
+export async function deletePrefix(env, prefix, keep = new Set()) {
   let cursor;
   do {
     const page = await env.SITES.list({ prefix, cursor });
@@ -88,6 +89,7 @@ export async function publish(request, env) {
   if (error) return error;
   const user = session.user;
   if (!canPublish(user)) return fail(403, "나이 확인(보호자 동의)이 끝나야 발행할 수 있어요.");
+  if (user.deletion_requested_at) return fail(403, "삭제 예정인 계정은 발행할 수 없어요. 삭제를 취소하면 다시 발행할 수 있어요.");
   const body = await readJson(request, 256 * 1024);
   if (!body) return fail(400, "보낸 내용을 읽지 못했어요.");
 
@@ -152,9 +154,6 @@ export async function publish(request, env) {
 export async function unpublish(request, env) {
   const { session, error } = await requireSession(request, env);
   if (error) return error;
-  const mine = await env.DB.prepare("SELECT slug FROM sites WHERE user_id = ?").bind(session.user.id).first();
-  if (!mine) return json({ ok: true });
-  await deletePrefix(env, `sites/${mine.slug}/`);
-  await env.DB.prepare("DELETE FROM sites WHERE user_id = ?").bind(session.user.id).run();
+  await removeSite(env, session.user.id);
   return json({ ok: true });
 }

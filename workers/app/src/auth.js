@@ -6,12 +6,15 @@
  */
 import { randomCode, randomToken, sha256, hmac, safeEqual } from "./lib/crypto.js";
 import { json, fail, html, esc, readJson, readSessionCookie, sessionCookie, clearSessionCookie, fromApp, clientIp } from "./lib/http.js";
-import { sendMail, loginCodeMail, guardianMail } from "./lib/mail.js";
+import { sendMail, loginCodeMail, guardianMail, guardianDoneMail } from "./lib/mail.js";
+import { removeUserContent } from "./account.js";
 
 const MIN = 60_000, HOUR = 60 * MIN, DAY = 24 * HOUR;
 const CODE_TTL = 10 * MIN, CODE_TRIES = 5;
 const SESSION_TTL = 30 * DAY;
 const GUARDIAN_TTL = 7 * DAY;
+/** 계정 삭제 요청 뒤 실제로 지우기까지 (그 사이 로그인하면 취소 가능) */
+export const DELETION_GRACE = 7 * DAY;
 
 const EMAIL_RE = /^[^\s@]+@[^\s@]+\.[^\s@]+$/;
 function normalizeEmail(v) {
@@ -28,6 +31,9 @@ function publicUser(u) {
     ageStatus: u.age_status,
     canPublish: u.age_status === "ok" || u.age_status === "guardian_ok",
     guardianEmail: u.guardian_email ? maskEmail(u.guardian_email) : null,
+    // 보호자가 동의를 철회해서 "동의 전"으로 돌아온 상태 (화면에서 안내)
+    guardianWithdrawn: u.age_status === "pending_guardian" && Boolean(u.guardian_withdrawn_at),
+    deletionScheduledAt: u.deletion_requested_at ? u.deletion_requested_at + DELETION_GRACE : null,
   };
 }
 
@@ -211,7 +217,7 @@ export async function guardianPage(request, env) {
 <li>자녀가 직접 쓴 이름·소개·작업·이미지: 자녀가 공개를 고른 사이트에 표시</li>
 <li>보호자님의 이메일: 이 동의 확인에만</li>
 </ul>
-<p class="muted">동의는 언제든 철회할 수 있고, 철회하면 사이트는 비공개로 바뀌어요.</p>
+<p class="muted">동의는 언제든 철회할 수 있어요. 동의하시면 철회 링크를 메일로 보내 드려요. 철회하면 사이트를 내리고 서버에 저장된 자녀의 글·이미지를 지워요.</p>
 <form method="post" action="/api/guardian/consent"><input type="hidden" name="token" value="${esc(token)}"><button type="submit">동의합니다</button></form>
 <p class="muted">동의하지 않으시면 이 창을 닫으시면 돼요.</p>`);
 }
@@ -222,9 +228,53 @@ export async function guardianConsent(request, env) {
   const form = await request.formData().catch(() => null);
   const g = await findGuardianToken(env, form?.get("token"));
   if (!g) return expired();
+  // 철회 링크: 동의가 유지되는 동안 계속 쓸 수 있어야 해서 만료 없이, 해시만 저장. 다시 동의하면 새 링크로 바뀐다
+  const withdraw = randomToken();
   await env.DB.batch([
-    env.DB.prepare("UPDATE users SET age_status = 'guardian_ok', guardian_consented_at = ? WHERE id = ?").bind(Date.now(), g.user_id),
+    env.DB.prepare("UPDATE users SET age_status = 'guardian_ok', guardian_consented_at = ?, guardian_withdraw_hash = ?, guardian_withdrawn_at = NULL WHERE id = ?")
+      .bind(Date.now(), await sha256(withdraw), g.user_id),
     env.DB.prepare("DELETE FROM guardian_tokens WHERE user_id = ?").bind(g.user_id),
   ]);
-  return page("동의 완료", `<h1>동의해 주셔서 고마워요</h1><p>이제 자녀가 포트폴리오를 공개할 수 있어요. 이 창은 닫으셔도 돼요.</p>`);
+  const link = `${env.APP_ORIGIN}/api/guardian/withdraw?token=${encodeURIComponent(withdraw)}`;
+  const u = await env.DB.prepare("SELECT guardian_email FROM users WHERE id = ?").bind(g.user_id).first();
+  if (u?.guardian_email) await sendMail(env, guardianDoneMail(u.guardian_email, maskEmail(g.email), link));
+  return page("동의 완료", `<h1>동의해 주셔서 고마워요</h1><p>이제 자녀가 포트폴리오를 공개할 수 있어요.</p>
+<p class="muted">동의를 철회하고 싶으시면 아래 링크를 여세요. 같은 링크를 메일로도 보내 드렸어요.</p>
+<p><a href="${esc(link)}">동의 철회 페이지</a></p>`);
+}
+
+async function findWithdraw(env, token) {
+  if (typeof token !== "string" || token.length < 20 || token.length > 100) return null;
+  return env.DB.prepare("SELECT id, email FROM users WHERE guardian_withdraw_hash = ? AND age_status = 'guardian_ok'").bind(await sha256(token)).first();
+}
+
+const unusable = () => page("쓸 수 없는 링크", `<h1>이미 철회됐거나 쓸 수 없는 링크예요</h1><p class="muted">동의를 다시 하셨다면 새로 받은 메일의 링크를 써 주세요.</p>`);
+
+/** GET /api/guardian/withdraw?token= — 무엇이 지워지는지 안내하고 버튼을 눌러야 철회 (링크를 여는 것만으론 아무 일도 없음) */
+export async function guardianWithdrawPage(request, env) {
+  const token = new URL(request.url).searchParams.get("token");
+  const u = await findWithdraw(env, token);
+  if (!u) return unusable();
+  return page("보호자 동의 철회", `<h1>자녀의 포트폴리오 공개 동의 철회</h1>
+<p><strong>${esc(maskEmail(u.email))}</strong> 계정에 주신 동의를 철회해요. 철회하면 바로 이렇게 돼요.</p>
+<ul>
+<li>공개된 포트폴리오 사이트를 내려요.</li>
+<li>서버에 저장된 자녀의 초안·버전 기록·올린 이미지·AI 사용 기록을 지워요. 되돌릴 수 없어요.</li>
+<li>자녀의 계정은 남지만, 다시 동의하시기 전까지 작업은 자녀의 기기에만 저장돼요.</li>
+</ul>
+<form method="post" action="/api/guardian/withdraw"><input type="hidden" name="token" value="${esc(token)}"><button type="submit">동의를 철회합니다</button></form>
+<p class="muted">철회하지 않으시려면 이 창을 닫으시면 돼요.</p>`);
+}
+
+// POST /api/guardian/withdraw (form)
+export async function guardianWithdraw(request, env) {
+  if (!fromApp(request, env)) return page("잘못된 요청", "<h1>잘못된 요청이에요</h1>");
+  const form = await request.formData().catch(() => null);
+  const u = await findWithdraw(env, form?.get("token"));
+  if (!u) return unusable();
+  // 먼저 상태를 바꿔 새 발행·동기화를 막은 뒤 지운다
+  await env.DB.prepare(`UPDATE users SET age_status = 'pending_guardian', guardian_consented_at = NULL, guardian_withdraw_hash = NULL,
+      guardian_withdrawn_at = ?, guardian_requested_at = NULL WHERE id = ?`).bind(Date.now(), u.id).run();
+  await removeUserContent(env, u.id);
+  return page("철회 완료", `<h1>동의를 철회했어요</h1><p>사이트를 내리고 서버에 저장된 자녀의 글·이미지를 지웠어요. 이 창은 닫으셔도 돼요.</p>`);
 }

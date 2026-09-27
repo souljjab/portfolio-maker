@@ -19,6 +19,9 @@
   ],
 
   // 사용자 사이트 파일 (라우팅 Worker와 같은 버킷): sites/{주소}/..., 올린 이미지 uploads/{user}/...
+  // 매일 한 번: 삭제 유예(7일)가 지난 계정 정리 (src/account.js purgeDueAccounts)
+  "triggers": { "crons": ["17 3 * * *"] },
+
   "r2_buckets": [
     { "binding": "SITES", "bucket_name": "portfolio-sites" }
   ],

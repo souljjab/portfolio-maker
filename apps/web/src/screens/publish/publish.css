@@ -43,3 +43,9 @@
 .pb-danger { color: var(--iv-danger); border-color: var(--iv-danger); }
 .pb-warn { display: grid; gap: 0.5rem; padding: 0.75rem; border: 1px solid var(--iv-danger); border-radius: 8px; background: #FFF6F5; }
 .pb-warn p { margin: 0; }
+
+/* 계정 삭제 */
+.pb-delacct { border-top: 1px dashed var(--iv-line); padding-top: 0.75rem; }
+.pb-delacct > summary { min-height: 32px; display: inline-flex; align-items: center; color: var(--iv-danger); font-weight: 600; cursor: pointer; }
+.pb-delacct[open] { display: grid; gap: 0.5rem; }
+.pb-del { color: var(--iv-danger); border-color: var(--iv-danger); }

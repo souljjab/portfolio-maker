@@ -245,6 +245,23 @@ export async function setAccountAge({ over14, guardianEmail }) {
 }
 
 /**
+ * 계정 삭제 예약 (이메일을 직접 입력해 확인). 사이트는 바로 내려가고 7일 뒤 모두 지워진다. 그 사이 취소 가능.
+ * @returns {Promise<{ ok: boolean, deletionScheduledAt?: number, reason?: string }>}
+ */
+export async function requestAccountDeletion(confirmEmail) {
+  const r = await apiFetch("/api/account/delete", { method: "POST", body: { confirmEmail } });
+  if (r.ok) await getAccount(); // 계정 상태(삭제 예정일)를 화면들에 알린다
+  return r;
+}
+
+/** 계정 삭제 취소 */
+export async function cancelAccountDeletion() {
+  const r = await apiFetch("/api/account/delete/cancel", { method: "POST" });
+  if (r.ok) await getAccount();
+  return r;
+}
+
+/**
  * 로그아웃. 이 기기의 작업(초안·인터뷰·이미지)은 지운다 — 같은 기기에서 다른 계정이 로그인했을 때 넘겨받지 않게.
  * 서버에 다 올라가지 않은 작업(보호자 동의 전·오프라인)이 있으면 지우기 전에 { unsynced: true }로 멈춘다.
  * @param {{ force?: boolean }} [opts]  force: 올리지 못한 작업이 있어도 지우고 로그아웃

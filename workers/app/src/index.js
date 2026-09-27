@@ -3,10 +3,11 @@
  * (wrangler.jsonc의 run_worker_first가 /api/* 만 이 코드로 보낸다)
  */
 import { fail } from "./lib/http.js";
-import { startLogin, verifyLogin, me, logout, setAge, guardianPage, guardianConsent } from "./auth.js";
+import { startLogin, verifyLogin, me, logout, setAge, guardianPage, guardianConsent, guardianWithdrawPage, guardianWithdraw } from "./auth.js";
 import { uploadImage, checkSlug, mySite, publish, unpublish } from "./publish.js";
 import { getDraft, putDraft, getImage, listVersions, getVersion, createVersion } from "./drafts.js";
 import { aiDirections, aiEdit } from "./ai.js";
+import { requestDeletion, cancelDeletion, devPurge, purgeDueAccounts } from "./account.js";
 
 const ROUTES = {
   "POST /api/auth/start": startLogin,
@@ -16,6 +17,11 @@ const ROUTES = {
   "POST /api/account/age": setAge,
   "GET /api/guardian/consent": guardianPage,
   "POST /api/guardian/consent": guardianConsent,
+  "GET /api/guardian/withdraw": guardianWithdrawPage,
+  "POST /api/guardian/withdraw": guardianWithdraw,
+  "POST /api/account/delete": requestDeletion,
+  "POST /api/account/delete/cancel": cancelDeletion,
+  "POST /api/dev/purge": devPurge,
   "POST /api/images": uploadImage,
   "GET /api/slug": checkSlug,
   "GET /api/site": mySite,
@@ -43,5 +49,9 @@ export default {
       console.error(e);
       return fail(500, "서버에서 문제가 생겼어요. 잠시 뒤 다시 시도해 주세요.");
     }
+  },
+  // 매일 한 번(wrangler.jsonc triggers): 삭제 유예 7일이 지난 계정 정리
+  async scheduled(event, env, ctx) {
+    ctx.waitUntil(purgeDueAccounts(env).then((n) => { if (n) console.log(`[purge] 계정 ${n}개 삭제`); }));
   },
 };
