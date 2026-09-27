@@ -170,6 +170,15 @@ const draft0 = () => ({
   const req = ed.normalizeEditRequest({ portfolio: draft0(), notes: [{ target: "headline", request: "더 짧게" }, { target: "<img>", request: "x" }, { target: "bio", request: "" }], message: "전체를 따뜻하게" });
   const msg = ed.buildEditUserMessage(req);
   check("보내는 내용: 연락처 가림, 링크·이미지 주소 없음, 잘못된 메모 뺌", !msg.includes("me@example.com") && msg.includes("[이메일]") && !msg.includes("github.com") && !msg.includes("img:abc") && req.notes.length === 1);
+  const mk = ed.normalizeEditRequest({ portfolio: draft0(), message: "", notes: [
+    { kind: "region", targets: ["name", "headline", "<x>"], request: "더 또렷하게", mark: { from: [0, 0], to: [9, 9] } },
+    { kind: "arrow", target: "project.2", to: "project.0", request: "맨 앞으로" },
+    { kind: "draw", targets: ["page"], request: "여기 허전해요" },
+    { kind: "evil", target: "bio", to: "project.0", request: "x" },
+  ] });
+  check("표시 메모: 영역·화살표·펜 모양 유지, 잘못된 칸·종류 정리, 좌표는 보내지 않음",
+    mk.notes[0].kind === "region" && mk.notes[0].targets.join() === "name,headline" && mk.notes[1].to === "project.0"
+    && mk.notes[2].targets[0] === "page" && mk.notes[3].kind === "element" && !mk.notes[3].to && !JSON.stringify(mk).includes("from"), JSON.stringify(mk.notes));
   check("메모·부탁이 없으면 요청 안 만듦", ed.normalizeEditRequest({ portfolio: draft0(), notes: [], message: " " }) === null);
   check("다듬기 시스템 프롬프트도 고정·사용자 글 없음", ed.buildEditSystemPrompt() === ed.buildEditSystemPrompt() && !ed.buildEditSystemPrompt().includes("김서윤"));
   let threw = null;

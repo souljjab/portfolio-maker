@@ -17,6 +17,10 @@ import { FONTS, BODY_FONT_IDS } from "../templates/fonts.js";
 import { ADDONS, addonById, addonProblem } from "../templates/addons.js";
 
 const MOTION_LEVELS = ["none", "subtle", "expressive"];
+/** 메모 종류: element 칸을 눌러 단 메모 / region 드래그한 영역 / draw 펜으로 그은 곳 / arrow 화살표 */
+const NOTE_KINDS = ["element", "region", "draw", "arrow"];
+/** 메모가 가리킬 수 있는 칸 (page = 영역 안에 칸이 없을 때 페이지 전체) */
+const NOTE_TARGET = /^(name|headline|bio|project\.\d+(\.(title|summary))?|links\.\d+|page)$/;
 const MAX_OPS = 30, MAX_NOTES = 12, NOTE_MAX = 200, MESSAGE_MAX = 500, REPLY_MAX = 200;
 
 /** 글 칸 대상과 최대 길이 */
@@ -77,9 +81,12 @@ export function normalizeEditRequest(body) {
   // 글 속 연락처는 가려서 보낸다 (이름은 사이트에 공개되는 정보라 그대로)
   for (const k of ["headline", "bio"]) page.content[k] = maskPii(page.content[k]);
   for (const x of projects) { x.title = maskPii(x.title); x.summary = maskPii(x.summary); }
-  const notes = (Array.isArray(body.notes) ? body.notes : []).slice(0, MAX_NOTES)
-    .map((n, i) => ({ no: i + 1, target: clip(n?.target, 40), request: maskPii(clip(n?.request, NOTE_MAX)) }))
-    .filter((n) => n.request && /^(name|headline|bio|project\.\d+(\.(title|summary))?|links\.\d+)$/.test(n.target));
+  const notes = (Array.isArray(body.notes) ? body.notes : []).slice(0, MAX_NOTES).map((n) => {
+    const targets = [...new Set([n?.target, ...(Array.isArray(n?.targets) ? n.targets : [])].filter((t) => typeof t === "string" && NOTE_TARGET.test(t)))].slice(0, 8);
+    const note = { kind: NOTE_KINDS.includes(n?.kind) ? n.kind : "element", targets, request: maskPii(clip(n?.request, NOTE_MAX)) };
+    if (note.kind === "arrow" && typeof n?.to === "string" && NOTE_TARGET.test(n.to)) note.to = n.to;
+    return note;
+  }).filter((n) => n.request && n.targets.length).map((n, i) => ({ no: i + 1, ...n }));
   const message = maskPii(clip(body.message, MESSAGE_MAX));
   if (!notes.length && !message) return null;
   return { page, notes, message };
@@ -102,7 +109,9 @@ export function buildEditSystemPrompt() {
 배치·구조(템플릿), 섹션 순서, 링크, 이미지, 새 요소 추가. 이런 부탁이면 ops 없이 reply로 할 수 있는 방법을 알려 준다(배치는 인터뷰의 3안에서 다시 고를 수 있다).
 
 ## 규칙
-- 부탁받은 것만, 가능한 한 좁게 바꾼다. 메모가 가리키는 칸(target)을 우선한다. 페이지 전체에 대한 부탁은 색·글꼴·크기로 푼다.
+- 부탁받은 것만, 가능한 한 좁게 바꾼다. 메모가 가리키는 칸(targets)을 우선한다. 페이지 전체에 대한 부탁은 색·글꼴·크기로 푼다.
+- 메모 종류(kind): element = 그 칸을 눌러 단 메모, region = 드래그한 영역(targets = 영역 안의 칸), draw = 펜으로 그은 곳(targets = 그린 범위의 칸), arrow = 화살표(targets[0]에서 to 쪽으로 — 옮기거나 이어 달라는 뜻일 수 있다. 배치는 바꿀 수 없으니 글·디자인으로 할 수 있는 만큼 하고, 못 하는 부분은 reply로 알린다). targets의 page는 페이지 전체.
+- 칸 이름: name 이름, headline 한 줄 소개, bio 소개글, project.N 작업 카드 전체, project.N.title·summary, links.N 링크(바꿀 수 없음).
 - 글을 고칠 때 사실을 지어내지 않는다(수상·회사·숫자·기간 등). 정보가 없으면 글을 늘리지 말고 reply로 물어본다.
 - 사람이 읽는 글은 자연스러운 한국어. 글자 수 제한: 이름 ${LIMITS.name}, 한 줄 소개 ${LIMITS.headline}, 소개글 ${LIMITS.bio}, 작업 제목 ${LIMITS.title}, 작업 설명 ${LIMITS.summary}자.
 - 글자 대비는 편집기가 자동으로 검사·보정하지만, 처음부터 읽기 쉬운 조합(본문 4.5:1 이상)을 고른다.

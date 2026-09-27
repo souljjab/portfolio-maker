@@ -1,9 +1,18 @@
 import { useCallback, useEffect, useLayoutEffect, useRef, useState } from "react";
 import { fieldLabel } from "./fields.js";
+import MarkLayer from "./MarkLayer.jsx";
 
 const DEVICES = { desktop: { label: "데스크톱", w: 1280 }, tablet: { label: "태블릿", w: 820 }, mobile: { label: "모바일", w: 390 } };
 /** 누르면: edit 그 자리에서 고치기 / note Claude에게 줄 메모 달기 / view 보기만(링크 새 창) */
 const MODES = { edit: "고치기", note: "메모", view: "보기만" };
+/** 메모 도구 (블루펜슬): 칸 누르기 / 영역 드래그 / 펜 / 화살표 */
+const NOTE_TOOLS = { click: "누르기", region: "영역", draw: "펜", arrow: "화살표" };
+const NOTE_HINT = {
+  click: "메모할 칸을 누르세요.",
+  region: "바꿀 영역을 드래그하세요. 영역 안의 칸이 메모 대상이 돼요.",
+  draw: "고칠 곳에 그어 보세요. 메모를 남기기 전까지 여러 번 그으면 한 메모로 묶여요.",
+  arrow: "옮기거나 이어 줄 곳에서 도착할 곳까지 끌어 주세요.",
+};
 const HINT = {
   edit: "글자를 누르면 그 자리에서 고쳐요. 작업·링크를 누르면 왼쪽 입력 칸으로 가요.",
   note: "바꾸고 싶은 곳을 누르고 메모를 남기세요. 아래에서 Claude에게 한 번에 부탁할 수 있어요.",
@@ -30,7 +39,7 @@ const EDIT_CSS = `[data-pf-field]{cursor:pointer}
  * @param {{ html: string, device: keyof DEVICES, onDevice: (d) => void,
  *           getValue: (field) => string, maxLength: (field) => number,
  *           onInline: (field, value) => void, onPick: (field) => void,
- *           notes: {target: string, request: string}[], onAddNote: (field, request) => void }} props
+ *           notes: {kind, target?, targets?, to?, request, mark?}[], onAddNote: (note) => void }} props
  */
 export default function EditCanvas({ html, device, onDevice, getValue, maxLength, onInline, onPick, notes, onAddNote }) {
   const boxRef = useRef(null);
@@ -38,7 +47,9 @@ export default function EditCanvas({ html, device, onDevice, getValue, maxLength
   const scroll = useRef(0);
   const [boxW, setBoxW] = useState(600);
   const [mode, setMode] = useState("edit");
-  const [inline, setInline] = useState(null);   // { html, kind: "edit"|"note", field, value, rect }
+  const [noteTool, setNoteTool] = useState("click");
+  const [scrollTop, setScrollTop] = useState(0); // 표시(영역·펜·화살표)를 스크롤에 맞춰 다시 그리기 위해
+  const [inline, setInline] = useState(null);   // { html, kind: "edit"|"note", field, value, rect, mark? }
   const picked = useRef(null);                   // 지금 고치는 칸의 요소 (윤곽선 지우기용)
   const devW = DEVICES[device].w;
   // 미리보기 칸이 숨겨져 폭이 0일 때(좁은 화면의 입력 보기)도 0으로 나누지 않게
@@ -54,7 +65,7 @@ export default function EditCanvas({ html, device, onDevice, getValue, maxLength
 
   // 최신 값을 iframe 이벤트에서 쓰기 위한 참조 (문서가 바뀔 때마다 다시 붙이지 않게)
   const live = useRef({});
-  useLayoutEffect(() => { live.current = { mode, scale, getValue, onPick, html }; });
+  useLayoutEffect(() => { live.current = { mode, noteTool, scale, getValue, onPick, html }; });
 
   /** 메모 번호 배지를 문서에 표시 (다시 그려질 때마다) */
   const markNotes = useCallback(() => {
@@ -63,7 +74,7 @@ export default function EditCanvas({ html, device, onDevice, getValue, maxLength
     doc.documentElement.style.setProperty("--pf-ed-k", String(1 / (live.current.scale || 1)));
     doc.querySelectorAll("[data-pf-note]").forEach((el) => el.removeAttribute("data-pf-note"));
     const nums = {};
-    (notes ?? []).forEach((n, i) => { (nums[n.target] ??= []).push(i + 1); });
+    (notes ?? []).forEach((n, i) => { if (!n.mark && n.target) (nums[n.target] ??= []).push(i + 1); });
     for (const [target, list] of Object.entries(nums)) {
       doc.querySelector(`[data-pf-field="${CSS.escape(target)}"]`)?.setAttribute("data-pf-note", list.join("·"));
     }
@@ -79,7 +90,13 @@ export default function EditCanvas({ html, device, onDevice, getValue, maxLength
     doc.head.append(style);
     const se = doc.scrollingElement;
     se?.scrollTo(0, scroll.current); // 다시 그려도 보던 위치 그대로
-    doc.addEventListener("scroll", () => { scroll.current = se?.scrollTop ?? 0; }, { passive: true });
+    let raf = 0;
+    doc.addEventListener("scroll", () => {
+      scroll.current = se?.scrollTop ?? 0;
+      cancelAnimationFrame(raf);
+      raf = requestAnimationFrame(() => setScrollTop(scroll.current));
+    }, { passive: true });
+    setScrollTop(scroll.current);
     let hovered = null;
     doc.addEventListener("mouseover", (e) => {
       const el = live.current.mode === "view" ? null : e.target.closest?.("[data-pf-field]");
@@ -89,7 +106,7 @@ export default function EditCanvas({ html, device, onDevice, getValue, maxLength
     });
     doc.addEventListener("click", (e) => {
       const { mode: m, scale: s } = live.current;
-      if (m === "view") return;
+      if (m === "view" || (m === "note" && live.current.noteTool !== "click")) return;
       e.preventDefault(); // 고치기·메모 중엔 링크를 열지 않는다
       const el = e.target.closest?.("[data-pf-field]");
       if (!el) return;
@@ -125,9 +142,24 @@ export default function EditCanvas({ html, device, onDevice, getValue, maxLength
 
   const commit = () => {
     if (open?.kind === "edit" && open.value !== getValue(open.field)) onInline(open.field, open.value);
-    if (open?.kind === "note" && open.value.trim()) onAddNote(open.field, open.value.trim());
+    if (open?.kind === "note" && open.value.trim()) {
+      const request = open.value.trim();
+      onAddNote(open.mark
+        ? { kind: open.mark.kind, targets: open.mark.targets, to: open.mark.to ?? undefined, request, mark: open.mark.shape }
+        : { kind: "element", target: open.field, request });
+    }
     setInline(null);
   };
+  /** 표시를 다 그렸을 때: 메모 칸을 연다 (펜은 열린 칸이 있으면 획을 더한다) */
+  const onMarkDone = (kind, shape, targets, to, anchor) => {
+    setInline((cur) => ({
+      html, kind: "note", field: targets[0], value: cur?.mark?.kind === kind ? cur.value : "",
+      mark: { kind, shape, targets, to },
+      rect: { top: anchor.top, left: Math.max(0, anchor.left - offX - 140), width: 300 },
+    }));
+  };
+  const markTool = mode === "note" && noteTool !== "click" ? noteTool : null;
+  const drawnMarks = (notes ?? []).map((n, i) => (n.mark ? { no: String(i + 1), kind: n.kind, mark: n.mark } : null)).filter(Boolean);
 
   return (
     <div className="ec">
@@ -143,7 +175,14 @@ export default function EditCanvas({ html, device, onDevice, getValue, maxLength
           ))}
         </div>
       </div>
-      <p className="iv-meta iv-left ec-hint">{HINT[mode]}</p>
+      {mode === "note" && (
+        <div className="dr-seg ec-tools" role="group" aria-label="메모 도구">
+          {Object.entries(NOTE_TOOLS).map(([k, label]) => (
+            <button key={k} type="button" aria-pressed={noteTool === k} onClick={() => { setNoteTool(k); setInline(null); }}>{label}</button>
+          ))}
+        </div>
+      )}
+      <p className="iv-meta iv-left ec-hint">{mode === "note" ? NOTE_HINT[noteTool] : HINT[mode]}</p>
       <div ref={boxRef} className="ec-box" style={{ height: viewH }}>
         <iframe
           ref={frameRef}
@@ -154,10 +193,13 @@ export default function EditCanvas({ html, device, onDevice, getValue, maxLength
           onLoad={hook}
           style={{ left: offX, width: devW, height: viewH / scale, transform: `scale(${scale})` }}
         />
+        <MarkLayer tool={markTool} scale={scale} offX={offX} scrollTop={scrollTop} frameRef={frameRef}
+          marks={drawnMarks} draft={open?.mark ? { kind: open.mark.kind, mark: open.mark.shape } : null}
+          onDone={onMarkDone} />
         {open && (
           <div className={`ec-inline is-${open.kind}`} style={{ top: Math.min(open.rect.top, viewH - 160), left: Math.min(open.rect.left + offX, Math.max(0, boxW - open.rect.width)), width: Math.min(open.rect.width, boxW) }}>
             <textarea
-              aria-label={open.kind === "edit" ? `${fieldLabel(open.field)} 고치기` : `${fieldLabel(open.field)}에 남길 메모`}
+              aria-label={open.kind === "edit" ? `${fieldLabel(open.field)} 고치기` : `${open.mark ? `${NOTE_TOOLS[open.mark.kind]} 표시(${open.mark.targets.map(fieldLabel).join(", ")})` : fieldLabel(open.field)}에 남길 메모`}
               placeholder={open.kind === "note" ? "어떻게 바꿀까요? 예: 더 짧게, 더 대담하게, 따뜻한 말투로" : undefined}
               autoFocus
               rows={open.field === "bio" || open.kind === "note" ? 3 : 2}

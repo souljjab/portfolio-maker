@@ -44,7 +44,7 @@ export default function Editor({ onGoInterview, onPublish, initialFocus }) {
   const [announce, setAnnounce] = useState("");
   const [tab, setTab] = useState("form");          // 좁은 화면: 내용 / 미리보기
   const [device, setDevice] = useState("desktop");
-  const [notes, setNotes] = useState([]);           // 캔버스에서 단 Claude용 메모 [{ target, request }]
+  const [notes, setNotes] = useState([]);           // 캔버스에서 단 Claude용 메모 [{ kind, target | targets, to?, request, mark? }]
   const [askMessage, setAskMessage] = useState("");
   const [askBusy, setAskBusy] = useState(false);
   const [askResult, setAskResult] = useState(null); // { reply, changes, skipped, before } | { error }
@@ -384,7 +384,7 @@ export default function Editor({ onGoInterview, onPublish, initialFocus }) {
           {html && (
             <EditCanvas html={html} device={device} onDevice={setDevice}
               getValue={canvasValue} maxLength={canvasMax} onInline={canvasInline} onPick={canvasPick}
-              notes={notes} onAddNote={(target, request) => { setNotes((n) => [...n, { target, request }]); setAnnounce(`${notes.length + 1}번 메모를 남겼어요.`); }} />
+              notes={notes} onAddNote={(note) => { setNotes((n) => [...n, note]); setAnnounce(`${notes.length + 1}번 메모를 남겼어요.`); }} />
           )}
           <AskPanel notes={notes} onRemoveNote={(i) => setNotes((n) => n.filter((_, k) => k !== i))}
             message={askMessage} onMessage={setAskMessage} busy={askBusy} onAsk={askClaude}
