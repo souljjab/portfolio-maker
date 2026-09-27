@@ -304,7 +304,7 @@ export default function Editor({ onGoInterview, onPublish, initialFocus }) {
           </section>
           <section className="ed-sec" aria-labelledby="ed-design-h">
             <h2 id="ed-design-h">디자인 다듬기</h2>
-            <p className="iv-meta iv-left">배치는 고른 안 그대로 두고 색·글꼴·크기만 조금씩 바꿀 수 있어요.</p>
+            <p className="iv-meta iv-left">배치는 고른 안 그대로 두고 색·글꼴·크기를 바꾸거나 개성 포인트를 얹을 수 있어요.</p>
             <DesignPanel
               tokens={draft.tokens}
               origin={draft.originTokens ?? draft.tokens}

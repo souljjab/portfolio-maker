@@ -12,7 +12,7 @@ export default function QuietEditorial({ portfolio, tokens }) {
   const sections = {
     hero: () => (
       <section key="hero" className="qe-section qe-hero qe-wrap">
-        <h1>{person.headline || person.name}</h1>
+        <h1 className="pf-hero-title pf-headline">{person.headline || person.name}</h1>
       </section>
     ),
     projects: () => (
@@ -21,7 +21,7 @@ export default function QuietEditorial({ portfolio, tokens }) {
         <ol className="qe-projects">
           {projects.map((p, i) => (
             <li key={p.id}>
-              <article className="qe-project">
+              <article className="qe-project pf-card">
                 <div>
                   <p className="qe-meta"><span>{p.year}</span><span>{p.role}</span></p>
                   <h3>{p.title}</h3>
@@ -44,7 +44,7 @@ export default function QuietEditorial({ portfolio, tokens }) {
     contact: () => (
       <section key="contact" className="qe-section qe-wrap" aria-labelledby="qe-contact">
         <h2 id="qe-contact" className="qe-label">연락</h2>
-        <ul className="qe-links">
+        <ul className="qe-links pf-links">
           {person.links.map((l, i) => <li key={i}><SafeLink link={l} /></li>)}
         </ul>
       </section>

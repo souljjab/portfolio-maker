@@ -4,13 +4,16 @@ import { tokenEdits } from "../../engine/edits.js";
 import { mix, hexToHsl } from "../../engine/color.js";
 import { luminance } from "../../engine/contrast.js";
 import ChipPicker from "../interview/ChipPicker.jsx";
+import { FONTS, BODY_FONT_IDS } from "../../templates/fonts.js";
+import { ADDONS, addonProblem } from "../../templates/addons.js";
+import { MOOD_PRESETS } from "../../data/moodPresets.js";
 
 /** 강조색 견본: grammar 기본 토큰의 강조색들 (모두 대비 게이트를 통과한 색) */
 const ACCENTS = [...new Set(Object.values(GRAMMAR_TOKENS).map((t) => t.color.accent))];
 const TONES = { origin: "원래대로", light: "더 밝게", warm: "따뜻하게", cool: "차갑게" };
 const TINT = { light: ["#FFFFFF", 0.6, 0.6], warm: ["#F3E2C4", 0.45, 0.3], cool: ["#D8E3EE", 0.45, 0.3] }; // [섞을 색, 배경 비율, 카드 비율]
 const MOTION = { none: "없음", subtle: "은은하게", expressive: "생동감 있게" };
-const FONT_LABEL = { "Pretendard": "고딕", "Noto Serif KR": "명조", "JetBrains Mono": "고정폭" };
+const FONT_LABEL = Object.fromEntries(Object.entries(FONTS).map(([k, f]) => [k, f.label]));
 const byLabel = (map, label) => Object.keys(map).find((k) => map[k] === label);
 
 /** 스크린리더용 색 이름 ("파랑 계열, 진한") — 색 코드만 읽어 주면 뜻이 없으므로 */
@@ -41,7 +44,7 @@ function Range({ id, label, min, max, step, value, onChange, low, high, valueTex
 }
 
 /**
- * 디자인 다듬기: 고른 안의 토큰을 조금씩 바꾼다. 배치(템플릿)는 그대로.
+ * 디자인 다듬기: 고른 안의 토큰을 조금씩 바꾸고 개성 포인트를 얹는다. 배치(템플릿)는 그대로.
  * 모든 변경은 대비 게이트(ensureContrast)를 다시 거친다 — 자동 보정되면 알리고, 불가능하면 적용하지 않는다.
  * @param {{ tokens, origin, onChange: (tokens, note: string) => void }} props
  */
@@ -61,6 +64,11 @@ export default function DesignPanel({ tokens, origin, onChange }) {
   // 첫 견본은 고른 안의 원래 강조색 (3안 강조색은 취향에 맞춰 조정된 색이라 기본 견본에 없을 수 있음)
   const swatches = [...new Set([origin.color.accent, ...ACCENTS])];
   const tone = Object.keys(TONES).find((k) => toneBg(origin, k)[0] === tokens.color.bg);
+  const preset = MOOD_PRESETS.find((p) => p.color.bg === tokens.color.bg && p.color.text === tokens.color.text);
+  const addons = tokens.addons ?? [];
+  const toggleAddon = (id) => apply((t) => {
+    t.addons = addons.includes(id) ? addons.filter((x) => x !== id) : [...addons, id];
+  });
   const setAccent = (hex) => apply((t) => {
     t.color.accent = hex.toUpperCase();
     t.color.onAccent = luminance(hex) > 0.18 ? "#111111" : "#FFFFFF";
@@ -68,6 +76,16 @@ export default function DesignPanel({ tokens, origin, onChange }) {
 
   return (
     <div className="ed-design">
+      <ChipPicker legend="분위기 프리셋 (색·글꼴·모서리를 한 번에)" options={MOOD_PRESETS.map((p) => p.label)} single
+        selected={preset ? [preset.label] : []}
+        onChange={([l]) => apply((t) => {
+          const p = MOOD_PRESETS.find((x) => x.label === l);
+          t.color = { ...p.color };
+          t.type.display = p.type.display;
+          t.type.body = p.type.body;
+          t.radius = { lg: p.radius, sm: Math.round(p.radius * 0.4) };
+        })} />
+
       <fieldset className="iv-field">
         <legend>강조색</legend>
         <div className="ed-swatches">
@@ -91,7 +109,7 @@ export default function DesignPanel({ tokens, origin, onChange }) {
 
       <ChipPicker legend="제목 글꼴" options={Object.values(FONT_LABEL)} single selected={[FONT_LABEL[tokens.type.display]]}
         onChange={([l]) => apply((t) => { t.type.display = byLabel(FONT_LABEL, l); })} />
-      <ChipPicker legend="본문 글꼴" options={[FONT_LABEL["Pretendard"], FONT_LABEL["Noto Serif KR"]]} single selected={[FONT_LABEL[tokens.type.body]]}
+      <ChipPicker legend="본문 글꼴" options={BODY_FONT_IDS.map((k) => FONT_LABEL[k])} single selected={[FONT_LABEL[tokens.type.body]]}
         onChange={([l]) => apply((t) => { t.type.body = byLabel(FONT_LABEL, l); })} />
 
       <Range id="ed-scale" label="글자 크기 차이" min={1.125} max={1.618} step={0.025} value={tokens.type.scaleRatio}
@@ -106,6 +124,28 @@ export default function DesignPanel({ tokens, origin, onChange }) {
 
       <ChipPicker legend="움직임" options={Object.values(MOTION)} single selected={[MOTION[tokens.motion.level]]}
         onChange={([l]) => apply((t) => { t.motion.level = byLabel(MOTION, l); })} />
+
+      <fieldset className="iv-field">
+        <legend>개성 포인트</legend>
+        <ul className="ed-addons">
+          {ADDONS.map((a) => {
+            const problem = addonProblem(a.id, tokens);
+            const on = addons.includes(a.id);
+            return (
+              <li key={a.id}>
+                <label className="ed-addon">
+                  <input type="checkbox" checked={on} disabled={Boolean(problem) && !on} aria-describedby={`ed-addon-${a.id}`}
+                    onChange={() => toggleAddon(a.id)} />
+                  <span className="ed-addon-name">{a.label}</span>
+                </label>
+                <p id={`ed-addon-${a.id}`} className="iv-meta iv-left ed-addon-desc">
+                  {a.desc}{problem ? ` — ${problem}${on ? " 지금은 꺼진 것처럼 보여요." : ""}` : ""}
+                </p>
+              </li>
+            );
+          })}
+        </ul>
+      </fieldset>
 
       <div className="ed-design-foot">
         <p className="iv-meta iv-left">고른 안에서 바꾼 곳: {edits.length}군데. 바꾼 내용은 다음 추천에 반영돼요.</p>

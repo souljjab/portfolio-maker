@@ -7,14 +7,16 @@ import { createElement } from "react";
 import { renderToStaticMarkup } from "react-dom/server";
 import { getTemplate } from "./index.js";
 import { FONTS } from "./fonts.js";
+import { activeAddons, addonById } from "./addons.js";
 import { tokensToCssVars } from "./tokensToCss.js";
 
 const ESC = { "&": "&amp;", "<": "&lt;", ">": "&gt;", '"': "&quot;", "'": "&#39;" };
 const esc = (s) => String(s).replace(/[&<>"']/g, (c) => ESC[c]);
 
-/** 토큰이 쓰는 폰트의 스타일시트 주소 (fonts.js 허용 목록에 있는 것만) */
+/** 토큰(과 켠 개성 포인트)이 쓰는 폰트의 스타일시트 주소 (fonts.js 허용 목록에 있는 것만) */
 export function fontHrefs(tokens) {
-  const names = [tokens.type.display, tokens.type.body, tokens.type.mono].filter(Boolean);
+  const addonFonts = activeAddons(tokens).map((id) => addonById[id].font);
+  const names = [tokens.type.display, tokens.type.body, tokens.type.mono, ...addonFonts].filter(Boolean);
   return [...new Set(names.map((n) => FONTS[n]?.href).filter(Boolean))];
 }
 

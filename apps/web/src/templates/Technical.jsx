@@ -40,8 +40,8 @@ export default function Technical({ portfolio, tokens }) {
         <div className="tc-grid tc-hero">
           <div className="tc-cell tc-id">
             <p className="tc-code"><span className="tc-mark">포트폴리오</span><span>{range}</span></p>
-            <h1>{person.name}</h1>
-            <p className="tc-headline">{person.headline}</p>
+            <h1 className="pf-hero-title">{person.name}</h1>
+            <p className="tc-headline pf-headline">{person.headline}</p>
           </div>
           <dl className="tc-cell tc-spec">
             <div><dt>프로젝트</dt><dd>{projects.length}개</dd></div>
@@ -58,7 +58,7 @@ export default function Technical({ portfolio, tokens }) {
         <ol className="tc-grid tc-projects">
           {projects.map((p, i) => (
             <li key={p.id}>
-              <article className="tc-cell tc-project">
+              <article className="tc-cell tc-project pf-card">
                 <p className="tc-code"><span className="tc-mark">P-{pad(i + 1)}</span><span>{p.year}</span></p>
                 <h3>{p.title}</h3>
                 <p>{p.summary}</p>
@@ -87,7 +87,7 @@ export default function Technical({ portfolio, tokens }) {
       <section key="contact" className="tc-section tc-wrap" aria-labelledby="tc-contact">
         {head("tc-contact", `${num("contact")} 연락`, `${person.links.length}개`)}
         <div className="tc-grid">
-          <dl className="tc-cell tc-spec tc-links">
+          <dl className="tc-cell tc-spec tc-links pf-links">
             {person.links.map((l, i) => (
               <div key={i}>
                 <dt>L-{pad(i + 1)}</dt>

@@ -36,7 +36,8 @@
 완료: Claude 3안(`workers/app/src/ai.js` + `src/engine/aiDirections.js`) — 로그인·나이 확인한 계정만, 출력은 규칙 엔진이 안별로 재검사, 실패하면 규칙 결과. 키(`ANTHROPIC_API_KEY`)가 없으면 규칙 엔진만.
 완료: 가입·로그인 후 시작 — 앱 첫 화면이 "무료로 시작하기"(`src/screens/start/`). 로그아웃하면 이 기기 작업을 지운다.
 완료: Claude 3안 평가 세트(`workers/app/eval/directions/`, 페르소나 24명) — 무료 파일럿(규칙 엔진)까지. 유료 실행(v1 low·v2 medium)은 API 키·하네스 승인 뒤.
-다음: 3안 평가 유료 실행 → 모델·effort 확정 → 인터뷰 자유 입력 해석 → 남은 grammar 템플릿.
+완료: 블루펜슬 편집기 옮기기 1단계 — 개성 포인트 6종(`src/templates/addons.js`), 분위기 프리셋 4종(`src/data/moodPresets.js`), 글꼴 12종(`fonts.js`). 편집기 "디자인 다듬기"에서 켜고, 발행 사이트에도 같게 나온다.
+다음: 블루펜슬 2단계(미리보기 캔버스: 기기별·요소 누르면 해당 칸으로·미리보기 위에서 글자 고치기) → 3단계(표시하기·대화로 고치기, Claude는 내용·토큰·개성 포인트 변경만) → 3안 평가 유료 실행 → 모델·effort 확정 → 인터뷰 자유 입력 해석 → 남은 grammar 템플릿.
 공개 전 필수: 개인정보처리방침에 Claude(Anthropic) 전송 항목 명시, 보호자 동의 철회 기능(동의 페이지에 "언제든 철회" 안내가 있음), Resend 계정·도메인 SPF/DKIM, Turnstile 화면 위젯(서버 검증 자리는 있음), 이용약관·개인정보처리방침, 계정 삭제.
 남은 grammar 4종(swiss·bento·retro-web·experimental)은 가까운 템플릿으로 대체 렌더링 중(근거 문장에 명시). 자주 선택되면 같은 구조로 추가(썸네일 `src/thumbnails/`가 설계 스케치).
 미정: 축 확신도가 신호 개수만 반영(서로 어긋난 신호도 확신도↑). 지금은 A/B·확인 문장이 "확신도×치우침"으로 우회 중 — `AxisEstimate`에 분산을 넣을지 결정 필요.
@@ -55,6 +56,8 @@
 - grammar별 기본 토큰 10세트는 `src/data/grammarTokens.js`(모두 대비 게이트 통과해야 함). 시그니처 문구는 `src/data/signatures.js`(템플릿 기준).
 - 정적 HTML 문서는 `renderHtml.js`의 `renderPortfolioHtml` 하나로 만든다(미리보기 iframe srcdoc = 발행 결과). 무거워서 화면에서는 동적 import.
 - 미리보기 문서에는 `<base target="_blank">`가 들어가므로 템플릿에 페이지 안 앵커(`#…`) 링크를 넣지 않는다.
+- 모든 템플릿은 공통 훅 클래스를 단다: `pf-hero-title`(첫 화면 제목), `pf-headline`(한 줄 소개), `pf-card`(작업 하나), `pf-links`(링크 목록). 개성 포인트 CSS가 이것만 겨냥한다 — 새 템플릿도 꼭 달 것.
+- 개성 포인트는 토큰의 `addons`(id 목록). CSS는 `addons.js`의 허용 목록만, 모르는 id는 무시. `addonProblem`이 대비(형광펜 띠 위 3:1)·움직임 없음(기우는 카드)을 막고, 렌더러는 문제 있는 건 조용히 뺀다. 켜고 끈 것은 edit 신호 + DNA 시그니처 층(`signature.quirks`)에 남는다(축은 edit 가중치의 1/3로만).
 
 ## 3안 구조 (`src/engine/directions.js`, `src/screens/directions/`)
 - `buildDirections(dna, availableTemplates)` — 엔진은 JSX를 import하지 않고 구현된 템플릿 목록을 인자로 받는다(api가 레지스트리에서 넘김). node로 검증 가능.
@@ -78,7 +81,7 @@
 - 서버는 클라이언트 HTML을 받지 않는다. `apps/web/src/server/entry.js`를 `npm run build:render`로 묶은 `workers/app/src/generated/render.js`(생성물, gitignore)로 앱과 같은 템플릿·검증 코드를 쓴다. 템플릿을 고치면 이 번들을 다시 만들어야 서버에 반영된다.
 - 받은 내용은 `normalizeForPublish`(알려진 필드만, 길이·개수 제한) → `validatePortfolio` → 템플릿·토큰 모양 확인 순으로 다시 검사.
 - 주소는 D1 `sites`에서 먼저 차지(PK·UNIQUE)한 뒤 R2에 쓴다 → 동시 요청 경쟁 방지. 이미지는 `uploads` 기록이 있는 내 이미지만.
-- 사이트 이미지는 `/img/<sha256>.<ext>`만 허용(`safeImageSrc`), 외부 이미지는 싣지 않는다(CSP `img-src 'self'`).
+- 사이트 이미지는 `/img/<sha256>.<ext>`만 허용(`safeImageSrc`), 외부 이미지는 싣지 않는다(CSP `img-src 'self' data:` — data:는 개성 포인트의 그레인·커서 무늬용).
 - 로컬 라우터는 `env.dev`(라우트 없음)로 띄운다 — 라우트가 있으면 wrangler dev가 요청 호스트를 라우트 도메인으로 바꿔 주소를 알 수 없음.
 
 ## 동기화 구조 (`apps/web/src/api/index.js` 아래쪽, `workers/app/src/drafts.js`)
@@ -99,6 +102,7 @@
 - 페르소나 24명(`cases.json`: 명확·모순·말 적음·모호한 말·hard 제약·인젝션). 각자 인터뷰 답 + 인터뷰에 다 드러나지 않는 "진짜 취향"(truth·persona). A/B·확인 질문 답은 truth로 시뮬레이션(`lib.mjs`의 `interviewFor`).
 - variant: baseline = 규칙 엔진(무료), v1 = Claude effort low, v2 = medium. 결과는 저장소 루트 `.claude/hillclimb/directions/<variant>/`(results.jsonl·traces·previews/ 실제 템플릿 미리보기).
 - 채점: 무료 자동(추천안 적합도·금지 지킴·안전·Claude 채택·화면 다양성) + Sonnet 5가 규칙 엔진 3안(고정 ref)과 가린 채 쌍 비교(win).
+- Claude는 본문 글꼴 2종·고정폭 1종만 고를 수 있다(`aiDirections.js`의 BODY_FONTS·MONO_FONTS). 제목 글꼴은 fonts.js 전체.
 - 실행(workers/app): `node eval/directions/pilot.mjs`(무료 입력 검토 페이지) / `npm run eval:directions -- --variant baseline|v1|v2` / `npm run eval:report`. 하네스(러너·케이스·프롬프트)를 고치면 사람이 `--approve-harness`로 다시 승인해야 돈다.
 
 ## 로그인 구조 (`workers/app/src/auth.js`, `src/screens/start/`)

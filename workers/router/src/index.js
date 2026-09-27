@@ -30,10 +30,10 @@ const SECURITY_HEADERS = {
   "X-Frame-Options": "SAMEORIGIN",
   // 사이트는 서버가 템플릿으로 만든 정적 HTML이라 스크립트가 전혀 없다 → script-src 'none'.
   // 스타일은 템플릿의 <style>·CSS 변수 때문에 인라인 허용, 폰트는 fonts.js 허용 목록의 두 곳만.
-  // 이미지는 사이트 안(/img/)만 — 외부 이미지로 방문자를 추적하지 못하게.
+  // 이미지는 사이트 안(/img/)과 data:(개성 포인트의 그레인·커서 무늬)만 — 외부 이미지로 방문자를 추적하지 못하게.
   "Content-Security-Policy": [
     "default-src 'none'",
-    "img-src 'self'",
+    "img-src 'self' data:",
     "style-src 'unsafe-inline' https://fonts.googleapis.com https://cdn.jsdelivr.net",
     "font-src https://fonts.gstatic.com https://cdn.jsdelivr.net",
     "script-src 'none'",

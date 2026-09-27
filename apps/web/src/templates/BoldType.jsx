@@ -31,8 +31,8 @@ export default function BoldType({ portfolio, tokens }) {
   const sections = {
     hero: () => (
       <section key="hero" className="bt-hero bt-wrap">
-        <h1 style={{ "--bt-name-size": nameSize(person.name) }}>{person.name}</h1>
-        <p className="bt-headline">{person.headline}</p>
+        <h1 className="pf-hero-title" style={{ "--bt-name-size": nameSize(person.name) }}>{person.name}</h1>
+        <p className="bt-headline pf-headline">{person.headline}</p>
       </section>
     ),
     projects: () => (
@@ -44,7 +44,7 @@ export default function BoldType({ portfolio, tokens }) {
         <ol>
           {projects.map((p, i) => (
             <li key={p.id}>
-              <article className="bt-project">
+              <article className="bt-project pf-card">
                 <span className="bt-index" aria-hidden="true">{pad(i + 1)}</span>
                 <div>
                   <h3>{p.title}</h3>
@@ -81,7 +81,7 @@ export default function BoldType({ portfolio, tokens }) {
           <span className="bt-mono" aria-hidden="true">{num("contact")}</span>
           <h2 id="bt-contact">연락</h2>
         </div>
-        <ul className="bt-links">
+        <ul className="bt-links pf-links">
           {person.links.map((l, i) => <li key={i}><SafeLink link={l} /></li>)}
         </ul>
       </section>

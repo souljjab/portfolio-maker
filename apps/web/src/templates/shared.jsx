@@ -6,13 +6,15 @@
 import baseCss from "./base.css?raw";
 import { tokensToCssVars } from "./tokensToCss.js";
 import { safeUrl, safeImageSrc } from "./utils.js";
+import { activeAddons, addonCss } from "./addons.js";
 
-/** 템플릿 루트: 토큰을 CSS 변수로 주입하고 공통 + grammar CSS를 붙인다 */
+/** 템플릿 루트: 토큰을 CSS 변수로 주입하고 공통 + grammar CSS + 켠 개성 포인트 CSS를 붙인다 */
 export function TemplateRoot({ grammar, css, tokens, children }) {
+  const addons = activeAddons(tokens).map((id) => ` pf-addon-${id}`).join("");
   return (
-    <div className={`pf pf-${grammar}`} style={tokensToCssVars(tokens)}>
-      {/* 개발자가 작성한 정적 CSS만 들어간다. 사용자 입력은 절대 넣지 않는다. */}
-      <style dangerouslySetInnerHTML={{ __html: baseCss + css }} />
+    <div className={`pf pf-${grammar}${addons}`} style={tokensToCssVars(tokens)}>
+      {/* 개발자가 작성한 정적 CSS만 들어간다(개성 포인트도 허용 목록의 CSS). 사용자 입력은 절대 넣지 않는다. */}
+      <style dangerouslySetInnerHTML={{ __html: baseCss + css + addonCss(tokens) }} />
       {children}
     </div>
   );

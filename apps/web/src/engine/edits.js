@@ -5,6 +5,7 @@
  */
 import { applyToAxis, SOURCE_WEIGHT } from "./taste.js";
 import { hexToHsl } from "./color.js";
+import { addonById } from "../templates/addons.js";
 
 const lerp = (v, a, b, ta, tb) => Math.round(ta + ((Math.min(Math.max(v, a), b) - a) / (b - a)) * (tb - ta));
 const MOTION_TARGET = { none: 5, subtle: 35, expressive: 75 };
@@ -34,7 +35,12 @@ export function tokenEdits(origin, tokens) {
     ["radius.lg", origin.radius.lg, tokens.radius.lg],
     ["motion.level", origin.motion.level, tokens.motion.level],
   ];
-  return pairs.filter(([, a, b]) => a !== b).map(([key, from, to]) => ({ key, from, to }));
+  const changes = pairs.filter(([, a, b]) => a !== b).map(([key, from, to]) => ({ key, from, to }));
+  // 개성 포인트: 켠 것·끈 것 (원래 안에는 없으므로 보통 켠 것)
+  const had = origin.addons ?? [], has = tokens.addons ?? [];
+  for (const id of has) if (!had.includes(id)) changes.push({ key: `addon:${id}`, from: false, to: true });
+  for (const id of had) if (!has.includes(id)) changes.push({ key: `addon:${id}`, from: true, to: false });
+  return changes;
 }
 
 /**
@@ -47,8 +53,20 @@ export function applyEdits(dna, changes) {
   const signals = [];
   const pull = (axis, target, weight = SOURCE_WEIGHT.edit) => { axes[axis] = applyToAxis(axes[axis], target, weight); };
   const note = (key, statement) => signals.push({ id: `edit:${key}`, kind: "preference", source: "edit", statement, confidence: 0.95 });
+  const quirks = [];
 
   for (const c of changes) {
+    if (c.key.startsWith("addon:")) {
+      // 개성 포인트는 시그니처 층에 남기고, 켰을 때만 관련 축을 약하게 끌어당긴다(장식 하나로 취향을 단정하지 않게)
+      const a = addonById[c.key.slice(6)];
+      if (!a) continue;
+      if (c.to) {
+        quirks.push(a.label);
+        for (const [axis, target] of Object.entries(a.signal)) pull(axis, target, SOURCE_WEIGHT.edit / 3);
+      }
+      note(c.key, `개성 포인트 ‘${a.label}’ ${c.to ? "켬" : "끔"}`);
+      continue;
+    }
     switch (c.key) {
       case "type.scaleRatio":
         pull("typography_drama", lerp(c.to, 1.125, 1.618, 20, 95));
@@ -82,5 +100,6 @@ export function applyEdits(dna, changes) {
         note(c.key, `${c.key === "type.display" ? "제목" : "본문"} 글꼴을 ${c.to}(으)로`);
     }
   }
-  return { ...dna, taste: { ...dna.taste, axes }, signals: [...dna.signals, ...signals] };
+  const signature = quirks.length ? { ...dna.signature, quirks: [...new Set([...dna.signature.quirks, ...quirks])] } : dna.signature;
+  return { ...dna, taste: { ...dna.taste, axes }, signature, signals: [...dna.signals, ...signals] };
 }

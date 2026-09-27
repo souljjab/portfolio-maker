@@ -19,6 +19,7 @@ export const AI_KINDS = ["safe", "core", "stretch"];
 const GRAMMAR_IDS = GRAMMARS.map((g) => g.id);
 const FONT_IDS = Object.keys(FONTS);
 const BODY_FONTS = ["Pretendard", "Noto Serif KR"]; // 긴 한글 본문을 고정폭으로 쓰지 않게
+const MONO_FONTS = ["JetBrains Mono"];
 export const EASINGS = ["ease-out", "ease-in-out", "linear", "cubic-bezier(.2,.7,.2,1)", "cubic-bezier(.7,0,.2,1)"];
 const MOTION_LEVELS = ["none", "subtle", "expressive"];
 const RATIONALE_MAX = 140;
@@ -164,7 +165,7 @@ ${JSON.stringify(catalogue)}
 ## 토큰 규칙
 - baseTokens에서 출발해 이 사람의 취향 쪽으로 조정한다. 확신도가 높은 축일수록 크게, safe는 적게, stretch는 크게 움직인다.
 - 색은 6자리 hex(#RRGGBB). 본문 글자(text·muted)는 bg와 surface 위에서 4.5:1 이상, 버튼 글자(onAccent)는 accent 위에서 4.5:1 이상, accent는 bg 위에서 3:1 이상. 강조색은 큰 글자와 아이콘에만 쓰인다.
-- type.display: ${FONT_IDS.join(", ")} 중 하나. type.body: ${BODY_FONTS.join(", ")} 중 하나. type.mono: ${FONT_IDS.join(", ")} 또는 "none".
+- type.display: ${FONT_IDS.join(", ")} 중 하나. type.body: ${BODY_FONTS.join(", ")} 중 하나. type.mono: ${MONO_FONTS.join(", ")} 또는 "none".
 - type.scaleRatio 1.125~1.618, type.baseSize 15~19(px), space.unit은 8, space.section 48~200(8의 배수), radius.sm 0~24, radius.lg 0~48, motion.duration 0~800(ms).
 - motion.easing과 motion.level은 스키마의 선택지 중에서 고른다.
 
@@ -203,7 +204,7 @@ const directionSchema = {
           properties: {
             display: { type: "string", enum: FONT_IDS },
             body: { type: "string", enum: BODY_FONTS },
-            mono: { type: "string", enum: [...FONT_IDS, "none"] },
+            mono: { type: "string", enum: [...MONO_FONTS, "none"] },
             scaleRatio: { type: "number" },
             baseSize: { type: "number" },
           },
@@ -304,7 +305,7 @@ export function sanitizeAiTokens(t, dna, limits = hardLimits(dna)) {
   if (nums.some(Number.isNaN)) return null;
   const [scaleRatio, baseSize, section, sm, lg, duration] = nums;
   if (!FONT_IDS.includes(t.type.display) || !BODY_FONTS.includes(t.type.body)) return null;
-  if (!(t.type.mono === "none" || t.type.mono === null || FONT_IDS.includes(t.type.mono))) return null;
+  if (!(t.type.mono === "none" || t.type.mono === null || MONO_FONTS.includes(t.type.mono))) return null;
   if (!EASINGS.includes(t.motion.easing) || !MOTION_LEVELS.includes(t.motion.level)) return null;
 
   const tokens = {

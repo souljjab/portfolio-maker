@@ -14,8 +14,8 @@ export default function Organic({ portfolio, tokens }) {
     hero: () => (
       <section key="hero" className="og-hero og-wrap">
         <div className="og-hero-text">
-          <h1>{person.name}</h1>
-          <p className="og-headline">{person.headline}</p>
+          <h1 className="pf-hero-title">{person.name}</h1>
+          <p className="og-headline pf-headline">{person.headline}</p>
         </div>
         <div className="og-art" aria-hidden="true">
           <i className="og-blob og-blob-1" />
@@ -30,7 +30,7 @@ export default function Organic({ portfolio, tokens }) {
         <ol className="og-projects">
           {projects.map((p, i) => (
             <li key={p.id}>
-              <article className="og-project">
+              <article className="og-project pf-card">
                 <Cover project={p} className={`og-shape-${i % 3}`} />
                 <p className="og-meta">{[p.year, p.role].filter(Boolean).join(" · ")}</p>
                 <h3>{p.title}</h3>
@@ -50,7 +50,7 @@ export default function Organic({ portfolio, tokens }) {
     contact: () => (
       <section key="contact" className="og-section og-wrap" aria-labelledby="og-contact">
         <h2 id="og-contact" className="og-title">연락</h2>
-        <ul className="og-links">
+        <ul className="og-links pf-links">
           {person.links.map((l, i) => <li key={i}><SafeLink link={l} /></li>)}
         </ul>
       </section>

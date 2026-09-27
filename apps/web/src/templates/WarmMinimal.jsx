@@ -15,8 +15,8 @@ export default function WarmMinimal({ portfolio, tokens }) {
     hero: () => (
       <section key="hero" className="wm-hero wm-wrap">
         <span className="wm-avatar" aria-hidden="true">{initial}</span>
-        <h1>{person.name}</h1>
-        <p className="wm-headline">{person.headline}</p>
+        <h1 className="pf-hero-title">{person.name}</h1>
+        <p className="wm-headline pf-headline">{person.headline}</p>
         {firstLink && <SafeLink link={firstLink} className="pf-link wm-btn" />}
       </section>
     ),
@@ -26,7 +26,7 @@ export default function WarmMinimal({ portfolio, tokens }) {
         <ul className="wm-cards">
           {projects.map((p) => (
             <li key={p.id}>
-              <article className="wm-card">
+              <article className="wm-card pf-card">
                 <Cover project={p} />
                 <div className="wm-card-body">
                   <h3>{p.title}</h3>
@@ -51,7 +51,7 @@ export default function WarmMinimal({ portfolio, tokens }) {
     contact: () => (
       <section key="contact" className="wm-section wm-wrap" aria-labelledby="wm-contact">
         <h2 id="wm-contact" className="wm-title">연락</h2>
-        <ul className="wm-links">
+        <ul className="wm-links pf-links">
           {person.links.map((l, i) => <li key={i}><SafeLink link={l} className="pf-link wm-pill" /></li>)}
         </ul>
       </section>

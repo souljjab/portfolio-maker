@@ -16,8 +16,8 @@ export default function Gallery({ portfolio, tokens }) {
   const sections = {
     hero: () => (
       <section key="hero" className="gl-hero gl-wrap">
-        <h1>{person.name}</h1>
-        <p className="gl-headline">{person.headline}</p>
+        <h1 className="pf-hero-title">{person.name}</h1>
+        <p className="gl-headline pf-headline">{person.headline}</p>
       </section>
     ),
     projects: () => (
@@ -26,7 +26,7 @@ export default function Gallery({ portfolio, tokens }) {
         <ol className="gl-works">
           {projects.map((p, i) => (
             <li key={p.id}>
-              <article className="gl-work">
+              <article className="gl-work pf-card">
                 <Cover project={p} />
                 <div className="gl-cap">
                   <span className="gl-no" aria-hidden="true">{pad(i + 1)}</span>
@@ -49,7 +49,7 @@ export default function Gallery({ portfolio, tokens }) {
     contact: () => (
       <section key="contact" className="gl-info gl-wrap" aria-labelledby="gl-contact">
         <h2 id="gl-contact">연락</h2>
-        <ul className="gl-links">
+        <ul className="gl-links pf-links">
           {person.links.map((l, i) => <li key={i}><SafeLink link={l} /></li>)}
         </ul>
       </section>
