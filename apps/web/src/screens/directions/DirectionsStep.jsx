@@ -1,5 +1,5 @@
 import { useEffect, useMemo, useRef, useState } from "react";
-import { generateDirections, loadDraft, saveDraft } from "../../api/index.js";
+import { generateDirections, loadDraft, saveDraft, saveVersion } from "../../api/index.js";
 import { mixTokens } from "../../engine/directions.js";
 import { DIRECTION_KINDS, DIRECTION_REASONS, CONTENT_SECTIONS } from "../../data/interviewOptions.js";
 import PreviewFrame from "./PreviewFrame.jsx";
@@ -104,6 +104,8 @@ export default function DirectionsStep({ value, baseDna, onSubmit, onBack, onGoT
     const html = mixed ? render({ portfolio: drawable, tokens, template: d.template, preview: true }) : htmls[choosing];
 
     const confirm = async () => {
+      // 이미 다듬던 디자인이 있으면 덮기 전에 버전으로 남긴다(버전 기록에서 되돌릴 수 있게)
+      if (portfolio?.tokens) await saveVersion("3안 다시 고르기 전", portfolio);
       await saveDraft({ ...preview, grammar: d.grammar, template: d.template, tokens, originTokens: tokens });
       onSubmit({
         kind: d.kind, grammar: d.grammar, template: d.template,

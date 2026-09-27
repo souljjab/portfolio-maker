@@ -5,7 +5,7 @@
 import { fail } from "./lib/http.js";
 import { startLogin, verifyLogin, me, logout, setAge, guardianPage, guardianConsent } from "./auth.js";
 import { uploadImage, checkSlug, mySite, publish, unpublish } from "./publish.js";
-import { getDraft, putDraft, getImage } from "./drafts.js";
+import { getDraft, putDraft, getImage, listVersions, getVersion, createVersion } from "./drafts.js";
 import { aiDirections, aiEdit } from "./ai.js";
 
 const ROUTES = {
@@ -23,6 +23,8 @@ const ROUTES = {
   "POST /api/site/unpublish": unpublish,
   "GET /api/drafts": getDraft,
   "PUT /api/drafts": putDraft,
+  "GET /api/versions": listVersions,
+  "POST /api/versions": createVersion,
   "POST /api/ai/directions": aiDirections,
   "POST /api/ai/edit": aiEdit,
 };
@@ -32,7 +34,8 @@ export default {
     const url = new URL(request.url);
     if (!url.pathname.startsWith("/api/")) return env.ASSETS.fetch(request);
     const handler = ROUTES[`${request.method} ${url.pathname}`]
-      ?? (request.method === "GET" && url.pathname.startsWith("/api/images/") ? getImage : null);
+      ?? (request.method === "GET" && url.pathname.startsWith("/api/images/") ? getImage : null)
+      ?? (request.method === "GET" && url.pathname.startsWith("/api/versions/") ? getVersion : null);
     if (!handler) return fail(404, "없는 주소예요.");
     try {
       return await handler(request, env);

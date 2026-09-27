@@ -39,6 +39,7 @@
 완료: 블루펜슬 편집기 옮기기 1단계 — 개성 포인트 6종(`src/templates/addons.js`), 분위기 프리셋 4종(`src/data/moodPresets.js`), 글꼴 12종(`fonts.js`). 편집기 "디자인 다듬기"에서 켜고, 발행 사이트에도 같게 나온다.
 완료: 블루펜슬 2단계 — 편집 캔버스(`src/screens/editor/EditCanvas.jsx`): 데스크톱·태블릿·모바일, 미리보기에서 이름·한 줄 소개·소개글·작업 제목·설명을 그 자리에서 고치기, 작업·링크를 누르면 입력 칸으로.
 완료: 블루펜슬 3단계 — Claude로 다듬기: 캔버스 "메모" 모드(누른 곳에 번호 메모) + "Claude에게 부탁하기"(`AskPanel.jsx`) → `/api/ai/edit` → 변경 목록만 받아 검사 후 적용, 모두 되돌리기. 키가 없으면 안내만.
+완료: 블루펜슬 나머지 — 표시 도구(영역·펜·화살표 → Claude 메모, `MarkLayer.jsx`), 맞춤 슬라이더("조절" 모드 + `tokens.tune`, `templates/tune.js`, `TunePanel.jsx`), 버전 기록(서버 D1 `draft_versions` 최근 30개, `VersionPanel.jsx`).
 다음: 3안 평가 유료 실행 → 인터뷰 자유 입력 해석 → 남은 grammar 템플릿 → 모델·effort 확정 → 인터뷰 자유 입력 해석 → 남은 grammar 템플릿.
 공개 전 필수: 개인정보처리방침에 Claude(Anthropic) 전송 항목 명시, 보호자 동의 철회 기능(동의 페이지에 "언제든 철회" 안내가 있음), Resend 계정·도메인 SPF/DKIM, Turnstile 화면 위젯(서버 검증 자리는 있음), 이용약관·개인정보처리방침, 계정 삭제.
 남은 grammar 4종(swiss·bento·retro-web·experimental)은 가까운 템플릿으로 대체 렌더링 중(근거 문장에 명시). 자주 선택되면 같은 구조로 추가(썸네일 `src/thumbnails/`가 설계 스케치).
@@ -70,6 +71,9 @@
 ## 편집기 구조 (`src/screens/editor/`)
 - 편집 캔버스는 발행과 같은 HTML(`renderPortfolioHtml({ editable: true })`)을 iframe에 그린다. 샌드박스는 스크립트 불가 그대로, `allow-same-origin`만 줘서 부모가 클릭·호버를 받는다. 템플릿의 칸 표시 `data-pf-field`(이름·순서만)는 editable일 때만 남고 발행·내려받기·3안 미리보기에선 지워진다.
 - 칸 이름: `name`·`headline`·`bio`·`project.{i}`·`project.{i}.title|summary`·`links.{i}`. 새 템플릿도 같은 칸 표시를 달 것. 키보드·스크린리더는 왼쪽 입력 칸으로 모두 고칠 수 있다(캔버스는 보조 수단).
+- 캔버스 모드: 고치기(글 칸 그 자리에서) / 조절(누른 곳에 맞는 슬라이더 — `knobsFor`) / 메모(누르기·영역·펜·화살표 → Claude 메모) / 보기만. 표시 좌표는 iframe 문서 기준(스크롤 포함)으로 저장하고 Claude에겐 보내지 않는다.
+- 조절값 `tokens.tune`(제목·한 줄 소개 크기는 공통 훅에 zoom, 작업 간격·콘텐츠 폭은 템플릿 CSS가 `--tune-*`를 곱함, 줄 간격은 base.css). 새 템플릿도 간격·폭에 `--tune-gap`·`--tune-width`를 곱할 것.
+- 버전 기록: `api.saveVersion/listVersions/loadVersion`. 로그인+나이 확인이면 서버(이미지는 먼저 올려 upload:로 — 동기화와 같은 `withServerImages`), 보호자 동의 전이면 이 기기 `pf:versions`(이 버전들이 쓰는 이미지는 정리하지 않음, 로그아웃 때 삭제). 자동으로 남는 때: Claude 다듬기 전·되돌리기 전·3안 다시 고르기 전·편집 10분마다.
 - 초안은 불완전해도 자동 저장(0.6초), 오류는 칸을 벗어난 뒤에만 표시하고 막지 않는다. 발행은 `validatePortfolio`가 빈 객체일 때만 허용할 예정.
 - 내용이 없는 섹션(소개글·작업·링크)은 템플릿이 `visibleSections`로 건너뛴다. 링크 key는 순서 기반(주소가 비거나 겹칠 수 있음).
 - 순서 이동은 위·아래 버튼(끝은 aria-disabled), 삭제는 확인창 대신 되돌리기 알림.
@@ -119,7 +123,7 @@
 - 코드는 HMAC(pepper, email:code)만 저장, 10분·5번 시도·새 코드 받으면 이전 코드 무효, 이메일당 시간당 5번·IP당 20번. 코드 요청 응답은 가입 여부와 무관하게 같다.
 - 상태를 바꾸는 요청은 `Origin === APP_ORIGIN` + (세션이 있으면) `X-CSRF-Token`. 프론트는 `api/index.js`의 `apiFetch`가 CSRF 헤더를 붙인다.
 - `EXPOSE_DEV_CODE=1`(응답에 코드·동의 링크 포함)은 `.dev.vars`에만. 배포 설정에 넣지 말 것.
-- 서버 검증: `npm run test:auth`(30개 — Origin·CSRF·코드 시도·요청 제한·보호자 동의·쿠키 속성), `npm run test:publish`(29개 — 이미지 형식·주소 소유·서버 재검사·CSP·304·주소 이동·비공개), `npm run test:sync`(16개 — 버전 충돌·다른 기기·이미지 소유·보호자 동의 전 차단).
+- 서버 검증: `npm run test:auth`(30개 — Origin·CSRF·코드 시도·요청 제한·보호자 동의·쿠키 속성), `npm run test:publish`(29개 — 이미지 형식·주소 소유·서버 재검사·CSP·304·주소 이동·비공개), `npm run test:sync`(28개 — 버전 충돌·다른 기기·이미지 소유·보호자 동의 전 차단·버전 기록).
 - 로컬은 모든 요청이 한 IP라 `.dev.vars`의 `LOGIN_IP_LIMIT=1000`으로 코드 요청 IP 제한을 풀어 둔다(배포 기본 20).
 
 ## 반드시 지킬 아키텍처 규칙

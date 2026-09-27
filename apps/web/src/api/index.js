@@ -107,7 +107,8 @@ export async function loadDraft() {
       draft = structuredClone(MOCK_PORTFOLIO);
     }
     // 초안이 더 이상 쓰지 않는 이미지 정리 (실패해도 초안 불러오기엔 영향 없음)
-    images.prune(localImageIds(draft)).catch(() => {});
+    // 이 기기에만 저장된 버전이 쓰는 이미지도 남긴다(되돌렸을 때 사진이 사라지지 않게)
+    images.prune([...localImageIds(draft), ...readLocalVersions().flatMap((v) => localImageIds(v.portfolio))]).catch(() => {});
     return draft;
   }
 }
@@ -351,11 +352,11 @@ function readMeta() { try { return JSON.parse(localStorage.getItem(SYNC_KEY)); }
 function writeMeta(m) { try { localStorage.setItem(SYNC_KEY, JSON.stringify(m)); } catch { /* 무시 */ } }
 /** 이 기기에 아직 안 올린 작업이 있으면 변경 있음으로 시작 */
 function hasLocalWork() {
-  return localStorage.getItem(KEY) !== null || localStorage.getItem(SESSION_KEY) !== null;
+  return localStorage.getItem(KEY) !== null || localStorage.getItem(SESSION_KEY) !== null || localStorage.getItem(VERSIONS_KEY) !== null;
 }
 /** 이 기기의 작업을 모두 지운다 (로그아웃, 다른 계정의 작업이 남아 있을 때) */
 async function clearLocalWork() {
-  for (const k of [KEY, SESSION_KEY, SYNC_KEY]) { try { localStorage.removeItem(k); } catch { /* 무시 */ } }
+  for (const k of [KEY, SESSION_KEY, SYNC_KEY, VERSIONS_KEY]) { try { localStorage.removeItem(k); } catch { /* 무시 */ } }
   await images.prune([]).catch(() => {});
 }
 function freshMeta(email, prev) {
@@ -451,31 +452,40 @@ function pull(remote) {
   return setStatus({ state: "synced", syncedAt: remote.updatedAt });
 }
 
+/**
+ * 초안의 이 기기 이미지(img:<id>)를 서버에 올리고, 사본에만 upload:<key>로 바꿔 넣는다(원본은 그대로).
+ * 이미 올린 이미지는 기록(uploaded: 로컬 id → 서버 key)으로 다시 올리지 않는다. 동기화·버전 저장이 함께 쓴다.
+ * @returns {Promise<{ ok: true, portfolio, uploaded } | { ok: false, offline: boolean, reason: string }>}
+ */
+async function withServerImages(draft, uploadedIn) {
+  const uploaded = { ...(uploadedIn ?? {}) };
+  if (!draft) return { ok: true, portfolio: draft, uploaded };
+  const projects = [];
+  for (const p of draft.projects) {
+    const id = p.cover?.startsWith(IMG_PREFIX) ? p.cover.slice(IMG_PREFIX.length) : null;
+    if (!id) { projects.push(p); continue; }
+    if (!uploaded[id]) {
+      const blob = await images.getBlob(id).catch(() => null);
+      if (!blob) { projects.push({ ...p, cover: null }); continue; }
+      const up = await uploadBlob(blob);
+      if (!up.ok) return { ok: false, offline: up === OFFLINE, reason: up.reason };
+      uploaded[id] = up.key;
+    }
+    projects.push({ ...p, cover: `${UPLOAD_PREFIX}${uploaded[id]}` });
+  }
+  return { ok: true, portfolio: { ...draft, projects }, uploaded };
+}
+
 async function push(baseVersion) {
   // 1) 이 기기에만 있는 이미지(img:<id>)를 서버에 올리고, "서버로 보내는 사본"에만 upload:<key>로 바꿔 넣는다.
   //    이 기기의 초안은 건드리지 않는다 — 편집기가 들고 있는 초안과 어긋나면, 다음 자동 저장이 옛 참조로 되돌리는 사이
   //    이미지 정리가 로컬 파일을 지워 사진을 잃을 수 있다. 이미 올린 이미지는 기록(uploaded)으로 다시 올리지 않는다.
   const meta0 = readMeta();
   const seq = meta0.dirtySeq; // 초안을 읽기 전에 잡는다 — 올리는 동안의 편집은 "안 보낸 변경"으로 남아 한 번 더 올라간다
-  const uploaded = { ...(meta0.uploaded ?? {}) }; // 로컬 id → 서버 key
   const draft = JSON.parse(localStorage.getItem(KEY) ?? "null");
-  let portfolio = draft;
-  if (draft) {
-    const projects = [];
-    for (const p of draft.projects) {
-      const id = p.cover?.startsWith(IMG_PREFIX) ? p.cover.slice(IMG_PREFIX.length) : null;
-      if (!id) { projects.push(p); continue; }
-      if (!uploaded[id]) {
-        const blob = await images.getBlob(id).catch(() => null);
-        if (!blob) { projects.push({ ...p, cover: null }); continue; }
-        const up = await uploadBlob(blob);
-        if (!up.ok) return setStatus({ state: up === OFFLINE ? "offline" : "error", reason: up.reason, syncedAt: meta0.syncedAt });
-        uploaded[id] = up.key;
-      }
-      projects.push({ ...p, cover: `${UPLOAD_PREFIX}${uploaded[id]}` });
-    }
-    portfolio = { ...draft, projects };
-  }
+  const conv = await withServerImages(draft, meta0.uploaded);
+  if (!conv.ok) return setStatus({ state: conv.offline ? "offline" : "error", reason: conv.reason, syncedAt: meta0.syncedAt });
+  const { portfolio, uploaded } = conv;
   const interview = JSON.parse(localStorage.getItem(SESSION_KEY) ?? "null");
 
   // 2) 서버에 저장 (버전이 그대로일 때만)
@@ -489,4 +499,45 @@ async function push(baseVersion) {
   writeMeta({ ...m, version: r.version, pushedSeq: seq, syncedAt: r.updatedAt, uploaded });
   if (m.dirtySeq !== seq) markDirty(); // 올리는 동안 또 바뀌었으면 한 번 더
   return setStatus({ state: "synced", syncedAt: r.updatedAt });
+}
+
+/* ── 버전 기록 (편집기) ─────────────────────────────────────────────
+ * 로그인 + 나이 확인이 끝난 계정은 서버(최근 30개, 다른 기기에서도), 보호자 동의 전이면 이 기기에만(최근 30개).
+ * 서버로 보낼 땐 이미지를 먼저 올려 upload:<key>로 바꾼다 — 다른 기기에서 되돌려도 사진이 보이게.
+ */
+const VERSIONS_KEY = "pf:versions";
+const MAX_LOCAL_VERSIONS = 30;
+const readLocalVersions = () => { try { return JSON.parse(localStorage.getItem(VERSIONS_KEY)) ?? []; } catch { return []; } };
+
+/** 지금 초안을 버전으로 저장. @returns {Promise<{ ok: boolean, reason?: string }>} */
+export async function saveVersion(label, portfolio) {
+  if (!portfolio?.tokens) return { ok: false, reason: "저장할 초안이 없어요." };
+  if (!ACTIVE.includes(syncStatus.state)) {
+    const list = [{ id: `l${Date.now()}`, label, createdAt: Date.now(), portfolio }, ...readLocalVersions()].slice(0, MAX_LOCAL_VERSIONS);
+    try { localStorage.setItem(VERSIONS_KEY, JSON.stringify(list)); } catch { return { ok: false, reason: "이 기기에 저장할 공간이 부족해요." }; }
+    return { ok: true };
+  }
+  const meta = readMeta();
+  const conv = await withServerImages(portfolio, meta?.uploaded);
+  if (!conv.ok) return { ok: false, reason: conv.reason };
+  if (meta) writeMeta({ ...readMeta(), uploaded: conv.uploaded });
+  return apiFetch("/api/versions", { method: "POST", body: { label, portfolio: conv.portfolio } });
+}
+
+/** 버전 목록 (내용 없이). @returns {Promise<{ ok: boolean, versions?: {id, label, createdAt}[], where?: "server"|"device", reason?: string }>} */
+export async function listVersions() {
+  if (!ACTIVE.includes(syncStatus.state)) {
+    return { ok: true, where: "device", versions: readLocalVersions().map(({ id, label, createdAt }) => ({ id, label, createdAt })) };
+  }
+  const r = await apiFetch("/api/versions");
+  return r.ok ? { ...r, where: "server" } : r;
+}
+
+/** 한 버전의 초안. @returns {Promise<{ ok: boolean, portfolio?, reason?: string }>} */
+export async function loadVersion(id) {
+  if (typeof id === "string" && id.startsWith("l")) {
+    const v = readLocalVersions().find((x) => x.id === id);
+    return v ? { ok: true, portfolio: v.portfolio } : { ok: false, reason: "없는 버전이에요." };
+  }
+  return apiFetch(`/api/versions/${encodeURIComponent(id)}`);
 }

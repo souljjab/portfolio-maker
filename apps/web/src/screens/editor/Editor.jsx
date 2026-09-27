@@ -1,11 +1,12 @@
 import { useEffect, useMemo, useRef, useState } from "react";
-import { loadDraft, saveDraft, uploadImage, loadInterview, saveInterview, requestAiEdit } from "../../api/index.js";
+import { loadDraft, saveDraft, uploadImage, loadInterview, saveInterview, requestAiEdit, saveVersion, loadVersion } from "../../api/index.js";
 import { acceptAiEdits } from "../../engine/aiEdits.js";
 import { tokenEdits } from "../../engine/edits.js";
 import { replayAnswers } from "../../engine/replay.js";
 import { LIMITS, normalizeUrl, parseTags, validatePortfolio, newProject } from "../../engine/content.js";
 import EditCanvas from "./EditCanvas.jsx";
 import AskPanel from "./AskPanel.jsx";
+import VersionPanel from "./VersionPanel.jsx";
 import EdField from "./EdField.jsx";
 import DesignPanel from "./DesignPanel.jsx";
 import { useResolvedPortfolio } from "../useResolvedPortfolio.js";
@@ -48,6 +49,8 @@ export default function Editor({ onGoInterview, onPublish, initialFocus }) {
   const [askMessage, setAskMessage] = useState("");
   const [askBusy, setAskBusy] = useState(false);
   const [askResult, setAskResult] = useState(null); // { reply, changes, skipped, before } | { error }
+  const [versionsKey, setVersionsKey] = useState(0); // 버전을 저장하면 목록을 다시 불러온다
+  const lastSnap = useRef({ at: null, json: "" }); // 자동 버전(편집 10분마다) 기준 — 첫 자동 저장부터 잰다
   const [, setFocusTick] = useState(0); // 캔버스에서 칸을 눌렀을 때 다시 그려 focus 이동 effect를 돌린다
   const [previewDraft, setPreviewDraft] = useState(null);
   const [imgState, setImgState] = useState({});  // 작업 id → { busy } | { error } | { done }
@@ -84,6 +87,12 @@ export default function Editor({ onGoInterview, onPublish, initialFocus }) {
       setSaved(r.savedAt);
       setDirty(false);
       recordEdits(draft);
+      const json = JSON.stringify(draft);
+      if (lastSnap.current.at === null) lastSnap.current = { at: Date.now(), json };
+      else if (Date.now() - lastSnap.current.at > 10 * 60_000 && json !== lastSnap.current.json) {
+        lastSnap.current = { at: Date.now(), json };
+        saveVersion("자동 저장", draft).then((v) => { if (v.ok) setVersionsKey((k) => k + 1); });
+      }
     }, 600);
     return () => clearTimeout(t);
   }, [draft, dirty]);
@@ -169,6 +178,7 @@ export default function Editor({ onGoInterview, onPublish, initialFocus }) {
     if (!r.ok) { setAskResult({ error: r.reason ?? "부탁을 보내지 못했어요." }); return; }
     const acc = acceptAiEdits(r, before);
     if (acc.changes.length) {
+      saveVersion("Claude 다듬기 전", before).then((v) => { if (v.ok) setVersionsKey((k) => k + 1); });
       setDraft(acc.draft);
       setDirty(true);
       setUndo(null);
@@ -183,6 +193,25 @@ export default function Editor({ onGoInterview, onPublish, initialFocus }) {
     setDirty(true);
     setAskResult(null);
     setAnnounce("Claude가 바꾼 곳을 모두 되돌렸어요.");
+  };
+
+  /** 버전 기록: 지금 저장 / 되돌리기(되돌리기 전 상태도 버전으로 남긴다) */
+  const saveNow = async (label) => {
+    const r = await saveVersion(label, draft);
+    if (r.ok) { lastSnap.current = { at: Date.now(), json: JSON.stringify(draft) }; setVersionsKey((k) => k + 1); }
+    return r;
+  };
+  const restoreVersion = async (id) => {
+    const v = await loadVersion(id);
+    if (!v.ok || !v.portfolio?.tokens) return { ok: false, reason: v.reason ?? "이 버전을 불러오지 못했어요." };
+    const keep = await saveVersion("되돌리기 전", draft);
+    if (!keep.ok) return { ok: false, reason: `지금 상태를 먼저 남기지 못해서 되돌리지 않았어요. (${keep.reason})` };
+    setDraft({ ...v.portfolio, id: draft.id, slug: draft.slug, status: draft.status });
+    setDirty(true);
+    setUndo(null);
+    setAskResult(null);
+    setVersionsKey((k) => k + 1);
+    return { ok: true };
   };
 
   const canvasPick = (field) => {
@@ -396,6 +425,7 @@ export default function Editor({ onGoInterview, onPublish, initialFocus }) {
           <AskPanel notes={notes} onRemoveNote={(i) => setNotes((n) => n.filter((_, k) => k !== i))}
             message={askMessage} onMessage={setAskMessage} busy={askBusy} onAsk={askClaude}
             result={askResult} onUndo={undoClaude} snippet={canvasSnippet} />
+          <VersionPanel onSave={saveNow} onRestore={restoreVersion} refreshKey={versionsKey} />
         </aside>
       </div>
 

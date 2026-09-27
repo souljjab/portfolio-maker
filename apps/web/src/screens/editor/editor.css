@@ -165,3 +165,13 @@
 .tp { display: grid; gap: 0.5rem; padding: 0.75rem; border: 1px solid var(--iv-line); border-radius: 10px; background: var(--iv-surface); }
 .tp-h { margin: 0; font-size: 0.9375rem; }
 .tp-knobs { display: grid; gap: 0.75rem; grid-template-columns: repeat(auto-fit, minmax(min(100%, 14rem), 1fr)); }
+
+/* 버전 기록 */
+.vp { padding: 0.75rem 1rem; border: 1px solid var(--iv-line); border-radius: 12px; background: var(--iv-surface); }
+.vp > summary { min-height: 32px; display: flex; align-items: center; font-weight: 700; cursor: pointer; }
+.vp[open] { display: grid; gap: 0.625rem; }
+.vp-save { display: flex; flex-wrap: wrap; gap: 0.5rem; }
+.vp-save input { flex: 1 1 12rem; min-height: 40px; padding: 0 0.625rem; border: 1px solid var(--iv-line); border-radius: 8px; font: inherit; }
+.vp-list { display: grid; gap: 0.375rem; margin: 0; padding: 0; list-style: none; max-height: 18rem; overflow: auto; }
+.vp-list li { display: flex; flex-wrap: wrap; align-items: center; justify-content: space-between; gap: 0.5rem; padding-block: 0.25rem; border-bottom: 1px solid var(--iv-line); }
+.vp-list .iv-btn { min-height: 32px; padding: 0 0.625rem; font-size: 0.8125rem; }
