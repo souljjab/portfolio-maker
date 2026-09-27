@@ -10,3 +10,6 @@ export const TEMPLATE_IDS = Object.keys(TEMPLATES);
 
 // Claude 3안: 입력 정리·프롬프트·출력 스키마·출력 검증 (앱·평가와 같은 코드)
 export { normalizeDna, buildSystemPrompt, buildDirectionsRequest, readDirectionsResponse, acceptAiDirections, DEFAULT_MODEL, DEFAULT_EFFORT } from "../engine/aiDirections.js";
+
+// Claude로 다듬기 (편집기 메모·대화)
+export { normalizeEditRequest, buildEditSystemPrompt, buildEditRequest, acceptAiEdits } from "../engine/aiEdits.js";

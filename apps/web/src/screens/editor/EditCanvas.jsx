@@ -1,35 +1,44 @@
 import { useCallback, useEffect, useLayoutEffect, useRef, useState } from "react";
+import { fieldLabel } from "./fields.js";
 
 const DEVICES = { desktop: { label: "데스크톱", w: 1280 }, tablet: { label: "태블릿", w: 820 }, mobile: { label: "모바일", w: 390 } };
+/** 누르면: edit 그 자리에서 고치기 / note Claude에게 줄 메모 달기 / view 보기만(링크 새 창) */
+const MODES = { edit: "고치기", note: "메모", view: "보기만" };
+const HINT = {
+  edit: "글자를 누르면 그 자리에서 고쳐요. 작업·링크를 누르면 왼쪽 입력 칸으로 가요.",
+  note: "바꾸고 싶은 곳을 누르고 메모를 남기세요. 아래에서 Claude에게 한 번에 부탁할 수 있어요.",
+  view: "보기만 하는 중이에요. 링크는 새 창으로 열려요.",
+};
 
 /** 미리보기에서 바로 고칠 수 있는 글 칸 (그 밖의 칸은 누르면 왼쪽 입력 칸으로 이동) */
 const INLINE = /^(name|headline|bio|project\.\d+\.(title|summary))$/;
-const fieldLabel = (f) => ({ name: "이름", headline: "한 줄 소개", bio: "소개글" }[f]
-  ?? (/\.title$/.test(f) ? "작업 제목" : /\.summary$/.test(f) ? "작업 한 줄 설명" : /^links\./.test(f) ? "링크" : "작업"));
 
 const hooked = new WeakSet(); // 이미 클릭·호버를 붙인 iframe 문서
 
 // 캔버스 안에만 넣는 편집 표시 (발행 HTML과는 무관 — 부모 문서가 iframe에 직접 붙인다)
 const EDIT_CSS = `[data-pf-field]{cursor:pointer}
 [data-pf-field].pf-ed-hover{outline:2px dashed #2745D6;outline-offset:3px}
-[data-pf-field].pf-ed-on{outline:2px solid #2745D6;outline-offset:3px}`;
+[data-pf-field].pf-ed-on{outline:2px solid #2745D6;outline-offset:3px}
+[data-pf-note]{outline:2px solid #C2361B;outline-offset:3px;position:relative}
+[data-pf-note]::before{--k:var(--pf-ed-k,1);content:attr(data-pf-note);position:absolute;top:calc(-13px*var(--k));left:calc(-13px*var(--k));z-index:60;min-width:calc(24px*var(--k));height:calc(24px*var(--k));padding:0 calc(6px*var(--k));border-radius:999px;background:#C2361B;color:#fff;font:700 calc(13px*var(--k))/calc(24px*var(--k)) system-ui,sans-serif;text-align:center;letter-spacing:0}`;
 
 /**
  * 편집 캔버스: 발행 결과와 같은 정적 HTML을 기기 폭으로 그리고, 누른 칸을 알려 준다.
  * iframe은 스크립트 불가 샌드박스 그대로 두고 allow-same-origin만 줘서 부모가 클릭·호버를 받는다
  * (문서는 우리가 템플릿으로 만든 것이고 스크립트는 한 줄도 실행되지 않는다).
- * 키보드·스크린리더 사용자는 왼쪽 입력 칸으로 같은 것을 모두 고칠 수 있다.
+ * 키보드·스크린리더 사용자는 왼쪽 입력 칸과 아래 부탁 칸으로 같은 것을 모두 할 수 있다.
  * @param {{ html: string, device: keyof DEVICES, onDevice: (d) => void,
  *           getValue: (field) => string, maxLength: (field) => number,
- *           onInline: (field, value) => void, onPick: (field) => void }} props
+ *           onInline: (field, value) => void, onPick: (field) => void,
+ *           notes: {target: string, request: string}[], onAddNote: (field, request) => void }} props
  */
-export default function EditCanvas({ html, device, onDevice, getValue, maxLength, onInline, onPick }) {
+export default function EditCanvas({ html, device, onDevice, getValue, maxLength, onInline, onPick, notes, onAddNote }) {
   const boxRef = useRef(null);
   const frameRef = useRef(null);
   const scroll = useRef(0);
   const [boxW, setBoxW] = useState(600);
-  const [editing, setEditing] = useState(true); // false: 보기만 (링크 새 창으로 열기)
-  const [inline, setInline] = useState(null);   // { field, value, rect }
+  const [mode, setMode] = useState("edit");
+  const [inline, setInline] = useState(null);   // { html, kind: "edit"|"note", field, value, rect }
   const picked = useRef(null);                   // 지금 고치는 칸의 요소 (윤곽선 지우기용)
   const devW = DEVICES[device].w;
   // 미리보기 칸이 숨겨져 폭이 0일 때(좁은 화면의 입력 보기)도 0으로 나누지 않게
@@ -43,9 +52,22 @@ export default function EditCanvas({ html, device, onDevice, getValue, maxLength
     return () => ro.disconnect();
   }, []);
 
-  // 최신 콜백을 iframe 이벤트에서 쓰기 위한 참조 (문서가 바뀔 때마다 다시 붙이지 않게)
+  // 최신 값을 iframe 이벤트에서 쓰기 위한 참조 (문서가 바뀔 때마다 다시 붙이지 않게)
   const live = useRef({});
-  useLayoutEffect(() => { live.current = { editing, scale, getValue, onPick, html }; });
+  useLayoutEffect(() => { live.current = { mode, scale, getValue, onPick, html }; });
+
+  /** 메모 번호 배지를 문서에 표시 (다시 그려질 때마다) */
+  const markNotes = useCallback(() => {
+    const doc = frameRef.current?.contentDocument;
+    if (!doc?.body) return;
+    doc.documentElement.style.setProperty("--pf-ed-k", String(1 / (live.current.scale || 1)));
+    doc.querySelectorAll("[data-pf-note]").forEach((el) => el.removeAttribute("data-pf-note"));
+    const nums = {};
+    (notes ?? []).forEach((n, i) => { (nums[n.target] ??= []).push(i + 1); });
+    for (const [target, list] of Object.entries(nums)) {
+      doc.querySelector(`[data-pf-field="${CSS.escape(target)}"]`)?.setAttribute("data-pf-note", list.join("·"));
+    }
+  }, [notes]);
 
   const hook = useCallback(() => {
     const doc = frameRef.current?.contentDocument;
@@ -55,32 +77,36 @@ export default function EditCanvas({ html, device, onDevice, getValue, maxLength
     const style = doc.createElement("style");
     style.textContent = EDIT_CSS;
     doc.head.append(style);
-    doc.documentElement.classList.toggle("pf-ed", true);
     const se = doc.scrollingElement;
-    if (se) se.scrollTop = scroll.current; // 다시 그려도 보던 위치 그대로
+    se?.scrollTo(0, scroll.current); // 다시 그려도 보던 위치 그대로
     doc.addEventListener("scroll", () => { scroll.current = se?.scrollTop ?? 0; }, { passive: true });
     let hovered = null;
     doc.addEventListener("mouseover", (e) => {
-      if (!live.current.editing) return;
-      const el = e.target.closest?.("[data-pf-field]");
+      const el = live.current.mode === "view" ? null : e.target.closest?.("[data-pf-field]");
       if (hovered && hovered !== el) hovered.classList.remove("pf-ed-hover");
       hovered = el;
       el?.classList.add("pf-ed-hover");
     });
     doc.addEventListener("click", (e) => {
-      if (!live.current.editing) return;
-      e.preventDefault(); // 고치기 중엔 링크를 열지 않는다
+      const { mode: m, scale: s } = live.current;
+      if (m === "view") return;
+      e.preventDefault(); // 고치기·메모 중엔 링크를 열지 않는다
       const el = e.target.closest?.("[data-pf-field]");
       if (!el) return;
       const field = el.dataset.pfField;
-      if (!INLINE.test(field)) { live.current.onPick(field); return; }
-      const r = el.getBoundingClientRect(), s = live.current.scale;
+      if (m === "edit" && !INLINE.test(field)) { live.current.onPick(field); return; }
+      const r = el.getBoundingClientRect();
       picked.current?.classList.remove("pf-ed-on");
       picked.current = el;
       el.classList.add("pf-ed-on");
-      setInline({ html: live.current.html, field, value: live.current.getValue(field), rect: { top: r.bottom * s + 6, left: r.left * s, width: Math.max(r.width * s, 260) } }); // 고치는 글이 가려지지 않게 바로 아래
+      setInline({
+        html: live.current.html, kind: m, field,
+        value: m === "edit" ? live.current.getValue(field) : "",
+        rect: { top: r.bottom * s + 6, left: r.left * s, width: Math.max(r.width * s, 280) }, // 고치는 글이 가려지지 않게 바로 아래
+      });
     });
-  }, []);
+    markNotes();
+  }, [markNotes]);
 
   useEffect(() => {
     hook();
@@ -88,6 +114,9 @@ export default function EditCanvas({ html, device, onDevice, getValue, maxLength
     const stop = setTimeout(() => clearInterval(t), 3000);
     return () => { clearInterval(t); clearTimeout(stop); };
   }, [html, device, hook]);
+  useEffect(() => { markNotes(); }, [markNotes]);
+  // 축소된 미리보기에서도 메모 번호가 같은 크기로 보이게
+  useEffect(() => { frameRef.current?.contentDocument?.documentElement?.style.setProperty("--pf-ed-k", String(1 / scale)); });
 
   // 문서가 새로 그려지면(내용·디자인 변경) 열려 있던 칸은 닫힌 것으로 본다
   const open = inline && inline.html === html ? inline : null;
@@ -95,7 +124,8 @@ export default function EditCanvas({ html, device, onDevice, getValue, maxLength
   useEffect(() => { if (!open) { picked.current?.classList.remove("pf-ed-on"); picked.current = null; } }, [open]);
 
   const commit = () => {
-    if (open && open.value !== getValue(open.field)) onInline(open.field, open.value);
+    if (open?.kind === "edit" && open.value !== getValue(open.field)) onInline(open.field, open.value);
+    if (open?.kind === "note" && open.value.trim()) onAddNote(open.field, open.value.trim());
     setInline(null);
   };
 
@@ -107,31 +137,31 @@ export default function EditCanvas({ html, device, onDevice, getValue, maxLength
             <button key={k} type="button" aria-pressed={device === k} onClick={() => onDevice(k)}>{d.label}</button>
           ))}
         </div>
-        <label className="ec-toggle">
-          <input type="checkbox" checked={editing} onChange={(e) => { setEditing(e.target.checked); setInline(null); }} />
-          누르면 고치기
-        </label>
+        <div className="dr-seg" role="group" aria-label="미리보기를 누르면">
+          {Object.entries(MODES).map(([k, label]) => (
+            <button key={k} type="button" aria-pressed={mode === k} onClick={() => { setMode(k); setInline(null); }}>{label}</button>
+          ))}
+        </div>
       </div>
-      <p className="iv-meta iv-left ec-hint">
-        {editing ? "미리보기에서 글자를 누르면 그 자리에서 고칠 수 있어요. 작업·링크를 누르면 왼쪽 입력 칸으로 가요." : "보기만 하는 중이에요. 링크는 새 창으로 열려요."}
-      </p>
+      <p className="iv-meta iv-left ec-hint">{HINT[mode]}</p>
       <div ref={boxRef} className="ec-box" style={{ height: viewH }}>
         <iframe
           ref={frameRef}
           key={device}
           srcDoc={html}
-          title="내 포트폴리오 미리보기 (누르면 고치기)"
+          title="내 포트폴리오 미리보기"
           sandbox="allow-same-origin allow-popups allow-popups-to-escape-sandbox"
           onLoad={hook}
           style={{ left: offX, width: devW, height: viewH / scale, transform: `scale(${scale})` }}
         />
         {open && (
-          <div className="ec-inline" style={{ top: Math.min(open.rect.top, viewH - 150), left: Math.min(open.rect.left + offX, Math.max(0, boxW - open.rect.width)), width: Math.min(open.rect.width, boxW) }}>
+          <div className={`ec-inline is-${open.kind}`} style={{ top: Math.min(open.rect.top, viewH - 160), left: Math.min(open.rect.left + offX, Math.max(0, boxW - open.rect.width)), width: Math.min(open.rect.width, boxW) }}>
             <textarea
-              aria-label={`${fieldLabel(open.field)} 고치기`}
+              aria-label={open.kind === "edit" ? `${fieldLabel(open.field)} 고치기` : `${fieldLabel(open.field)}에 남길 메모`}
+              placeholder={open.kind === "note" ? "어떻게 바꿀까요? 예: 더 짧게, 더 대담하게, 따뜻한 말투로" : undefined}
               autoFocus
-              rows={open.field === "bio" ? 4 : 2}
-              maxLength={maxLength(open.field)}
+              rows={open.field === "bio" || open.kind === "note" ? 3 : 2}
+              maxLength={open.kind === "edit" ? maxLength(open.field) : 200}
               value={open.value}
               onChange={(e) => setInline((s) => ({ ...s, value: e.target.value }))}
               onKeyDown={(e) => {
@@ -140,9 +170,13 @@ export default function EditCanvas({ html, device, onDevice, getValue, maxLength
               }}
             />
             <div className="ec-inline-btns">
-              <button type="button" className="iv-btn iv-btn-primary" onMouseDown={(e) => e.preventDefault()} onClick={commit}>적용</button>
+              <button type="button" className="iv-btn iv-btn-primary" onMouseDown={(e) => e.preventDefault()} onClick={commit}>
+                {open.kind === "edit" ? "적용" : "메모 남기기"}
+              </button>
               <button type="button" className="iv-btn iv-btn-quiet" onClick={() => setInline(null)}>취소</button>
-              <button type="button" className="iv-btn iv-btn-quiet" onClick={() => { const f = open.field; setInline(null); onPick(f); }}>입력 칸으로</button>
+              {open.kind === "edit" && (
+                <button type="button" className="iv-btn iv-btn-quiet" onClick={() => { const f = open.field; setInline(null); onPick(f); }}>입력 칸으로</button>
+              )}
             </div>
           </div>
         )}

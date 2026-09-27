@@ -53,6 +53,18 @@ export async function generateDirections(dna) {
   return buildDirections(dna, available);
 }
 
+/**
+ * 편집기에서 Claude에게 다듬기 부탁 (미리보기 메모 + 대화). 로그인 + 나이 확인이 끝난 계정만.
+ * 돌아온 변경(ops)은 화면이 acceptAiEdits로 자기 초안에 다시 검사해 적용한다. 이미지 참조는 보내지 않는다.
+ * @param {{ portfolio, notes: {target: string, request: string}[], message: string }} req
+ * @returns {Promise<{ ok: boolean, reply?: string, ops?: {target: string, value: string}[], reason?: string }>}
+ */
+export async function requestAiEdit({ portfolio, notes, message }) {
+  if (!ACTIVE.includes(syncStatus.state)) return { ok: false, reason: "나이 확인(보호자 동의)이 끝나면 Claude에게 부탁할 수 있어요." };
+  const slim = { ...portfolio, projects: portfolio.projects.map((p) => ({ ...p, cover: null })) };
+  return apiFetch("/api/ai/edit", { method: "POST", body: { portfolio: slim, notes, message } });
+}
+
 /** 인터뷰 세션 불러오기. 없거나 형식이 다르면 새 세션 */
 export async function loadInterview() {
   if (USE_MOCK) {

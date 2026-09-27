@@ -6,7 +6,7 @@ import { fail } from "./lib/http.js";
 import { startLogin, verifyLogin, me, logout, setAge, guardianPage, guardianConsent } from "./auth.js";
 import { uploadImage, checkSlug, mySite, publish, unpublish } from "./publish.js";
 import { getDraft, putDraft, getImage } from "./drafts.js";
-import { aiDirections } from "./ai.js";
+import { aiDirections, aiEdit } from "./ai.js";
 
 const ROUTES = {
   "POST /api/auth/start": startLogin,
@@ -24,6 +24,7 @@ const ROUTES = {
   "GET /api/drafts": getDraft,
   "PUT /api/drafts": putDraft,
   "POST /api/ai/directions": aiDirections,
+  "POST /api/ai/edit": aiEdit,
 };
 
 export default {

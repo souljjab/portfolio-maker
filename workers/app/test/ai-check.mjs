@@ -120,6 +120,64 @@ for (const garbage of [null, "안녕", [], { safe: "x" }, { safe: { grammar: "..
   check("시스템 프롬프트는 고정(캐시)이고 사용자 글이 없음", s1 === s2 && !s1.includes("example.com"));
 }
 
+/* ── 1부 b: 다듬기(편집기 메모·대화) 검증 ─────────────────────────── */
+console.log("— 다듬기 검증");
+const ed = await import(new URL("engine/aiEdits.js", web));
+const { GRAMMAR_TOKENS } = await import(new URL("data/grammarTokens.js", web));
+const draft0 = () => ({
+  person: { name: "김서윤", headline: "학생 개발자", bio: "연락은 me@example.com 으로", links: [{ label: "GitHub", url: "https://github.com/secret-me" }] },
+  projects: [{ id: "p1", title: "반 과제 앱", summary: "협업 도구", role: "", year: "2026", tags: [], cover: "img:abc", coverAlt: "" }],
+  sections: ["hero", "projects", "about", "contact"], grammar: "warm-minimal", template: "warm-minimal",
+  tokens: structuredClone(GRAMMAR_TOKENS["warm-minimal"]),
+});
+{
+  const d = draft0();
+  const r = ed.acceptAiEdits({ reply: "제목을 키우고 손글씨를 더했어요.", ops: [
+    { target: "headline", value: "매일 쓰는 도구를 만드는 학생 개발자" },
+    { target: "color.accent", value: "#1f46c8" },
+    { target: "type.display", value: "Jua" },
+    { target: "addon.hand", value: "on" },
+  ] }, d);
+  check("정상 변경 4개 적용, 원본 초안은 그대로", r.changes.length === 4 && r.draft.person.headline.startsWith("매일") && r.draft.tokens.addons.includes("hand") && d.person.headline === "학생 개발자" && !d.tokens.addons, JSON.stringify(r.skipped));
+  check("강조색 바꾸면 버튼 글자색도 맞춤 + 대비 통과", r.draft.tokens.color.accent === "#1F46C8" && checkTokens(r.draft.tokens).length === 0);
+  check("답장 문장 유지", r.reply === "제목을 키우고 손글씨를 더했어요.");
+}
+{
+  const d = draft0();
+  const r = ed.acceptAiEdits({ reply: "자세한 건 https://evil.example", ops: [
+    { target: "person.links.0.url", value: "javascript:alert(1)" },
+    { target: "type.body", value: "Jua" },
+    { target: "color.bg", value: "red;}body{x" },
+    { target: "addon.evil", value: "on" },
+    { target: "project.5.title", value: "없는 작업" },
+    { target: "headline", value: "<script>alert(1)</script>" },
+    { target: "bio", value: "가".repeat(900) },
+    { target: "space.section", value: "9999" },
+  ] }, d);
+  check("링크·없는 대상·제목 전용 글꼴을 본문에·CSS 끼워 넣기·모르는 개성 포인트·없는 작업·마크업 → 모두 뺌",
+    r.skipped.length === 6 && r.draft.person.links[0].url === "https://github.com/secret-me" && r.draft.tokens.type.body === d.tokens.type.body && r.draft.person.headline === "학생 개발자", JSON.stringify(r.skipped.map((x) => x.target)));
+  check("긴 글은 제한 길이로, 숫자는 범위로", r.draft.person.bio.length === 600 && r.draft.tokens.space.section === 200);
+  check("링크가 든 답장은 버림", r.reply === "");
+  check("이미지·링크는 절대 안 바뀜", r.draft.projects[0].cover === "img:abc" && JSON.stringify(r.draft.person.links) === JSON.stringify(d.person.links));
+}
+{
+  const r = ed.acceptAiEdits({ reply: "", ops: [{ target: "color.text", value: "#FFFFFF" }, { target: "color.bg", value: "#FFFFFF" }] }, draft0());
+  check("글자가 안 보이는 색 조합 → 보정되거나 통째로 빠지고, 결과는 항상 대비 통과", checkTokens(r.draft.tokens).length === 0);
+  const m = ed.acceptAiEdits({ reply: "", ops: [{ target: "motion.level", value: "none" }, { target: "addon.tilt", value: "on" }] }, draft0());
+  check("움직임 없음이면 기우는 카드는 안 켬", !m.draft.tokens.addons?.includes("tilt") && m.skipped.some((x) => x.target === "addon.tilt"));
+}
+{
+  const req = ed.normalizeEditRequest({ portfolio: draft0(), notes: [{ target: "headline", request: "더 짧게" }, { target: "<img>", request: "x" }, { target: "bio", request: "" }], message: "전체를 따뜻하게" });
+  const msg = ed.buildEditUserMessage(req);
+  check("보내는 내용: 연락처 가림, 링크·이미지 주소 없음, 잘못된 메모 뺌", !msg.includes("me@example.com") && msg.includes("[이메일]") && !msg.includes("github.com") && !msg.includes("img:abc") && req.notes.length === 1);
+  check("메모·부탁이 없으면 요청 안 만듦", ed.normalizeEditRequest({ portfolio: draft0(), notes: [], message: " " }) === null);
+  check("다듬기 시스템 프롬프트도 고정·사용자 글 없음", ed.buildEditSystemPrompt() === ed.buildEditSystemPrompt() && !ed.buildEditSystemPrompt().includes("김서윤"));
+  let threw = null;
+  try { for (const junk of [null, {}, { portfolio: 1 }, { portfolio: { tokens: {} }, message: "x" }]) { const q = ed.normalizeEditRequest(junk); if (q) ed.buildEditUserMessage(q); } ed.acceptAiEdits("x", draft0()); ed.acceptAiEdits({ ops: "x" }, draft0()); }
+  catch (e) { threw = e; }
+  check("이상한 요청·출력에도 죽지 않음", threw === null, threw?.message);
+}
+
 /* ── 2부: 엔드포인트 (가짜 Anthropic) ─────────────────────────────── */
 console.log("— 엔드포인트 (가짜 Anthropic 서버)");
 const FAKE_PORT = 8798, API_PORT = 8797;
@@ -225,6 +283,23 @@ try {
   reply = () => ({ status: 200, body: message(goodOutput()) });
   const limited = await go(user);
   check("사용자별 시간당 제한(테스트값 5번) 넘으면 429", limited.status === 429, String(limited.status));
+  // ── 다듬기 엔드포인트
+  const editBody = { portfolio: draft0(), notes: [{ target: "headline", request: "더 대담하게" }], message: "" };
+  const goEdit = (call, body = editBody, opts) => call("POST", "/api/ai/edit", { body, ...opts });
+  const before = seen.length;
+  check("다듬기: 메모·부탁이 없으면 400, Claude 호출 없음", (await goEdit(user, { portfolio: draft0(), notes: [], message: "" })).status === 400 && seen.length === before);
+  check("다듬기: 보호자 동의 전이면 거부", (await goEdit(await device(`ai-edit-minor-${stamp}@example.com`, "minor"))).status === 403);
+  reply = () => ({ status: 200, body: message({ reply: "한 줄 소개를 더 대담하게 바꿨어요.", ops: [
+    { target: "headline", value: "불편을 코드로 고치는 개발자" }, { target: "addon.marker", value: "on" }, { target: "color.bg", value: "not-a-color" },
+  ] }) });
+  const edited = await goEdit(user);
+  check("다듬기: 통과한 변경만 돌려줌", edited.status === 200 && edited.data.ops?.length === 2 && edited.data.reply.includes("대담"), JSON.stringify(edited.data).slice(0, 200));
+  const ereq = seen.at(-1);
+  const esent = JSON.stringify(ereq.body.messages);
+  check("다듬기 요청: 다듬기 프롬프트·ops 스키마·캐시·대체 모델", ereq.body.system?.[0]?.text.includes("디자인 파트너") && ereq.body.output_config?.format?.schema?.properties?.ops && ereq.body.system[0].cache_control && ereq.body.fallbacks === "default");
+  check("다듬기 요청: 연락처 가림·링크 주소 안 보냄", !esent.includes("me@example.com") && !esent.includes("secret-me"));
+  reply = () => ({ status: 200, body: message(null, "refusal", { stop_details: { type: "refusal", category: "cyber" } }) });
+  check("다듬기: 거절이면 502", (await goEdit(user)).status === 502);
 } finally {
   stop();
 }

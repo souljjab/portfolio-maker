@@ -1,9 +1,11 @@
 import { useEffect, useMemo, useRef, useState } from "react";
-import { loadDraft, saveDraft, uploadImage, loadInterview, saveInterview } from "../../api/index.js";
+import { loadDraft, saveDraft, uploadImage, loadInterview, saveInterview, requestAiEdit } from "../../api/index.js";
+import { acceptAiEdits } from "../../engine/aiEdits.js";
 import { tokenEdits } from "../../engine/edits.js";
 import { replayAnswers } from "../../engine/replay.js";
 import { LIMITS, normalizeUrl, parseTags, validatePortfolio, newProject } from "../../engine/content.js";
 import EditCanvas from "./EditCanvas.jsx";
+import AskPanel from "./AskPanel.jsx";
 import EdField from "./EdField.jsx";
 import DesignPanel from "./DesignPanel.jsx";
 import { useResolvedPortfolio } from "../useResolvedPortfolio.js";
@@ -42,6 +44,10 @@ export default function Editor({ onGoInterview, onPublish, initialFocus }) {
   const [announce, setAnnounce] = useState("");
   const [tab, setTab] = useState("form");          // 좁은 화면: 내용 / 미리보기
   const [device, setDevice] = useState("desktop");
+  const [notes, setNotes] = useState([]);           // 캔버스에서 단 Claude용 메모 [{ target, request }]
+  const [askMessage, setAskMessage] = useState("");
+  const [askBusy, setAskBusy] = useState(false);
+  const [askResult, setAskResult] = useState(null); // { reply, changes, skipped, before } | { error }
   const [, setFocusTick] = useState(0); // 캔버스에서 칸을 눌렀을 때 다시 그려 focus 이동 effect를 돌린다
   const [previewDraft, setPreviewDraft] = useState(null);
   const [imgState, setImgState] = useState({});  // 작업 id → { busy } | { error } | { done }
@@ -146,6 +152,39 @@ export default function Editor({ onGoInterview, onPublish, initialFocus }) {
     const pj = projectOf(field);
     if (pj?.key) setProject(pj.i, pj.key)(v);
   };
+  const canvasSnippet = (field) => {
+    if (/^links\./.test(field)) return draft.person.links[+field.split(".")[1]]?.label ?? "";
+    const pj = projectOf(field);
+    const v = pj && !pj.key ? pj.p.title : canvasValue(field);
+    return v.length > 24 ? `${v.slice(0, 24)}…` : v;
+  };
+
+  /** Claude에게 메모·부탁을 보내고, 돌아온 변경을 이 초안에 다시 검사해 적용 (되돌리기용으로 이전 초안 보관) */
+  const askClaude = async () => {
+    setAskBusy(true);
+    setAskResult(null);
+    const before = draft;
+    const r = await requestAiEdit({ portfolio: before, notes, message: askMessage });
+    setAskBusy(false);
+    if (!r.ok) { setAskResult({ error: r.reason ?? "부탁을 보내지 못했어요." }); return; }
+    const acc = acceptAiEdits(r, before);
+    if (acc.changes.length) {
+      setDraft(acc.draft);
+      setDirty(true);
+      setUndo(null);
+      setNotes([]);
+      setAskMessage("");
+    }
+    setAskResult({ reply: acc.reply, changes: acc.changes, skipped: acc.skipped, before });
+  };
+  const undoClaude = () => {
+    if (!askResult?.before) return;
+    setDraft(askResult.before);
+    setDirty(true);
+    setAskResult(null);
+    setAnnounce("Claude가 바꾼 곳을 모두 되돌렸어요.");
+  };
+
   const canvasPick = (field) => {
     const pj = projectOf(field);
     const link = /^links\.(\d+)$/.exec(field);
@@ -344,8 +383,12 @@ export default function Editor({ onGoInterview, onPublish, initialFocus }) {
         <aside className="ed-preview" aria-label="미리보기">
           {html && (
             <EditCanvas html={html} device={device} onDevice={setDevice}
-              getValue={canvasValue} maxLength={canvasMax} onInline={canvasInline} onPick={canvasPick} />
+              getValue={canvasValue} maxLength={canvasMax} onInline={canvasInline} onPick={canvasPick}
+              notes={notes} onAddNote={(target, request) => { setNotes((n) => [...n, { target, request }]); setAnnounce(`${notes.length + 1}번 메모를 남겼어요.`); }} />
           )}
+          <AskPanel notes={notes} onRemoveNote={(i) => setNotes((n) => n.filter((_, k) => k !== i))}
+            message={askMessage} onMessage={setAskMessage} busy={askBusy} onAsk={askClaude}
+            result={askResult} onUndo={undoClaude} snippet={canvasSnippet} />
         </aside>
       </div>
 
