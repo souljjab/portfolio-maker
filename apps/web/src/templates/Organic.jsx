@@ -14,8 +14,8 @@ export default function Organic({ portfolio, tokens }) {
     hero: () => (
       <section key="hero" className="og-hero og-wrap">
         <div className="og-hero-text">
-          <h1 className="pf-hero-title">{person.name}</h1>
-          <p className="og-headline pf-headline">{person.headline}</p>
+          <h1 className="pf-hero-title" data-pf-field="name">{person.name}</h1>
+          <p className="og-headline pf-headline" data-pf-field="headline">{person.headline}</p>
         </div>
         <div className="og-art" aria-hidden="true">
           <i className="og-blob og-blob-1" />
@@ -30,11 +30,11 @@ export default function Organic({ portfolio, tokens }) {
         <ol className="og-projects">
           {projects.map((p, i) => (
             <li key={p.id}>
-              <article className="og-project pf-card">
+              <article className="og-project pf-card" data-pf-field={`project.${i}`}>
                 <Cover project={p} className={`og-shape-${i % 3}`} />
                 <p className="og-meta">{[p.year, p.role].filter(Boolean).join(" · ")}</p>
-                <h3>{p.title}</h3>
-                <p>{p.summary}</p>
+                <h3 data-pf-field={`project.${i}.title`}>{p.title}</h3>
+                <p data-pf-field={`project.${i}.summary`}>{p.summary}</p>
               </article>
             </li>
           ))}
@@ -44,14 +44,14 @@ export default function Organic({ portfolio, tokens }) {
     about: () => (
       <section key="about" className="og-section og-wrap og-about" aria-labelledby="og-about">
         <h2 id="og-about" className="og-title">소개</h2>
-        <p>{person.bio}</p>
+        <p data-pf-field="bio">{person.bio}</p>
       </section>
     ),
     contact: () => (
       <section key="contact" className="og-section og-wrap" aria-labelledby="og-contact">
         <h2 id="og-contact" className="og-title">연락</h2>
         <ul className="og-links pf-links">
-          {person.links.map((l, i) => <li key={i}><SafeLink link={l} /></li>)}
+          {person.links.map((l, i) => <li key={i} data-pf-field={`links.${i}`}><SafeLink link={l} /></li>)}
         </ul>
       </section>
     ),

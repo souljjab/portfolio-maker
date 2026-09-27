@@ -15,8 +15,8 @@ export default function WarmMinimal({ portfolio, tokens }) {
     hero: () => (
       <section key="hero" className="wm-hero wm-wrap">
         <span className="wm-avatar" aria-hidden="true">{initial}</span>
-        <h1 className="pf-hero-title">{person.name}</h1>
-        <p className="wm-headline pf-headline">{person.headline}</p>
+        <h1 className="pf-hero-title" data-pf-field="name">{person.name}</h1>
+        <p className="wm-headline pf-headline" data-pf-field="headline">{person.headline}</p>
         {firstLink && <SafeLink link={firstLink} className="pf-link wm-btn" />}
       </section>
     ),
@@ -24,13 +24,13 @@ export default function WarmMinimal({ portfolio, tokens }) {
       <section key="projects" className="wm-section wm-wrap" aria-labelledby="wm-projects">
         <h2 id="wm-projects" className="wm-title">작업</h2>
         <ul className="wm-cards">
-          {projects.map((p) => (
+          {projects.map((p, i) => (
             <li key={p.id}>
-              <article className="wm-card pf-card">
+              <article className="wm-card pf-card" data-pf-field={`project.${i}`}>
                 <Cover project={p} />
                 <div className="wm-card-body">
-                  <h3>{p.title}</h3>
-                  <p>{p.summary}</p>
+                  <h3 data-pf-field={`project.${i}.title`}>{p.title}</h3>
+                  <p data-pf-field={`project.${i}.summary`}>{p.summary}</p>
                   <p className="wm-meta">{[p.year, p.role].filter(Boolean).join(" · ")}</p>
                   {p.tags.length > 0 && <ul className="wm-tags">{p.tags.map((t) => <li key={t}>{t}</li>)}</ul>}
                 </div>
@@ -44,7 +44,7 @@ export default function WarmMinimal({ portfolio, tokens }) {
       <section key="about" className="wm-section wm-wrap" aria-labelledby="wm-about">
         <div className="wm-about">
           <h2 id="wm-about" className="wm-title">소개</h2>
-          <p>{person.bio}</p>
+          <p data-pf-field="bio">{person.bio}</p>
         </div>
       </section>
     ),
@@ -52,7 +52,7 @@ export default function WarmMinimal({ portfolio, tokens }) {
       <section key="contact" className="wm-section wm-wrap" aria-labelledby="wm-contact">
         <h2 id="wm-contact" className="wm-title">연락</h2>
         <ul className="wm-links pf-links">
-          {person.links.map((l, i) => <li key={i}><SafeLink link={l} className="pf-link wm-pill" /></li>)}
+          {person.links.map((l, i) => <li key={i} data-pf-field={`links.${i}`}><SafeLink link={l} className="pf-link wm-pill" /></li>)}
         </ul>
       </section>
     ),

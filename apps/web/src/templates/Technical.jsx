@@ -40,8 +40,8 @@ export default function Technical({ portfolio, tokens }) {
         <div className="tc-grid tc-hero">
           <div className="tc-cell tc-id">
             <p className="tc-code"><span className="tc-mark">포트폴리오</span><span>{range}</span></p>
-            <h1 className="pf-hero-title">{person.name}</h1>
-            <p className="tc-headline pf-headline">{person.headline}</p>
+            <h1 className="pf-hero-title" data-pf-field="name">{person.name}</h1>
+            <p className="tc-headline pf-headline" data-pf-field="headline">{person.headline}</p>
           </div>
           <dl className="tc-cell tc-spec">
             <div><dt>프로젝트</dt><dd>{projects.length}개</dd></div>
@@ -58,10 +58,10 @@ export default function Technical({ portfolio, tokens }) {
         <ol className="tc-grid tc-projects">
           {projects.map((p, i) => (
             <li key={p.id}>
-              <article className="tc-cell tc-project pf-card">
+              <article className="tc-cell tc-project pf-card" data-pf-field={`project.${i}`}>
                 <p className="tc-code"><span className="tc-mark">P-{pad(i + 1)}</span><span>{p.year}</span></p>
-                <h3>{p.title}</h3>
-                <p>{p.summary}</p>
+                <h3 data-pf-field={`project.${i}.title`}>{p.title}</h3>
+                <p data-pf-field={`project.${i}.summary`}>{p.summary}</p>
                 <div>
                   <dl className="tc-spec">
                     <div><dt>역할</dt><dd>{p.role}</dd></div>
@@ -79,7 +79,7 @@ export default function Technical({ portfolio, tokens }) {
       <section key="about" className="tc-section tc-wrap" aria-labelledby="tc-about">
         {head("tc-about", `${num("about")} 소개`, "")}
         <div className="tc-grid">
-          <div className="tc-cell tc-about"><p>{person.bio}</p></div>
+          <div className="tc-cell tc-about"><p data-pf-field="bio">{person.bio}</p></div>
         </div>
       </section>
     ),
@@ -89,7 +89,7 @@ export default function Technical({ portfolio, tokens }) {
         <div className="tc-grid">
           <dl className="tc-cell tc-spec tc-links pf-links">
             {person.links.map((l, i) => (
-              <div key={i}>
+              <div key={i} data-pf-field={`links.${i}`}>
                 <dt>L-{pad(i + 1)}</dt>
                 <dd><SafeLink link={l} /><span className="tc-host">{hostOf(l.url)}</span></dd>
               </div>

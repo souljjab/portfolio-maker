@@ -16,8 +16,8 @@ export default function Gallery({ portfolio, tokens }) {
   const sections = {
     hero: () => (
       <section key="hero" className="gl-hero gl-wrap">
-        <h1 className="pf-hero-title">{person.name}</h1>
-        <p className="gl-headline pf-headline">{person.headline}</p>
+        <h1 className="pf-hero-title" data-pf-field="name">{person.name}</h1>
+        <p className="gl-headline pf-headline" data-pf-field="headline">{person.headline}</p>
       </section>
     ),
     projects: () => (
@@ -26,14 +26,14 @@ export default function Gallery({ portfolio, tokens }) {
         <ol className="gl-works">
           {projects.map((p, i) => (
             <li key={p.id}>
-              <article className="gl-work pf-card">
+              <article className="gl-work pf-card" data-pf-field={`project.${i}`}>
                 <Cover project={p} />
                 <div className="gl-cap">
                   <span className="gl-no" aria-hidden="true">{pad(i + 1)}</span>
-                  <h3>{p.title}</h3>
+                  <h3 data-pf-field={`project.${i}.title`}>{p.title}</h3>
                   <span className="gl-meta">{[p.year, p.role].filter(Boolean).join(" · ")}</span>
                 </div>
-                <p className="gl-summary">{p.summary}</p>
+                <p className="gl-summary" data-pf-field={`project.${i}.summary`}>{p.summary}</p>
               </article>
             </li>
           ))}
@@ -43,14 +43,14 @@ export default function Gallery({ portfolio, tokens }) {
     about: () => (
       <section key="about" className="gl-info gl-wrap" aria-labelledby="gl-about">
         <h2 id="gl-about">소개</h2>
-        <p>{person.bio}</p>
+        <p data-pf-field="bio">{person.bio}</p>
       </section>
     ),
     contact: () => (
       <section key="contact" className="gl-info gl-wrap" aria-labelledby="gl-contact">
         <h2 id="gl-contact">연락</h2>
         <ul className="gl-links pf-links">
-          {person.links.map((l, i) => <li key={i}><SafeLink link={l} /></li>)}
+          {person.links.map((l, i) => <li key={i} data-pf-field={`links.${i}`}><SafeLink link={l} /></li>)}
         </ul>
       </section>
     ),

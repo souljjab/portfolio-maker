@@ -110,7 +110,6 @@
   .ed-tabs { display: none; }
   .ed-layout { grid-template-columns: minmax(0, 5fr) minmax(0, 6fr); }
   .ed-preview { position: sticky; top: 1rem; }
-  .ed-preview .pv-full iframe { height: calc(100vh - 6rem); }
 }
 
 /* 개성 포인트 */
@@ -119,3 +118,20 @@
 .ed-addon input { width: 1.125rem; height: 1.125rem; accent-color: var(--iv-accent); }
 .ed-addon input:disabled + .ed-addon-name { color: var(--iv-muted); }
 .ed-addon-desc { margin: 0 0 0 1.625rem; }
+
+/* 편집 캔버스 (미리보기에서 누르면 고치기) */
+.ec { display: grid; gap: 0.5rem; min-width: 0; }
+.ec-bar { display: flex; flex-wrap: wrap; align-items: center; justify-content: space-between; gap: 0.5rem; }
+.ec-toggle { display: inline-flex; align-items: center; gap: 0.375rem; min-height: 32px; font-size: 0.875rem; cursor: pointer; }
+.ec-toggle input { width: 1.125rem; height: 1.125rem; accent-color: var(--iv-accent); }
+.ec-hint { margin: 0; }
+.ec-box { position: relative; width: 100%; min-width: 0; overflow: hidden; border: 1px solid var(--iv-line); border-radius: 12px; background: var(--iv-surface); }
+.ec-box iframe { position: absolute; top: 0; left: 0; display: block; border: 0; transform-origin: 0 0; } /* 레이아웃 폭에 끼지 않게 */
+.ec-inline {
+  position: absolute; z-index: 2; display: grid; gap: 0.5rem; padding: 0.5rem;
+  border: 2px solid var(--iv-accent); border-radius: 10px; background: var(--iv-surface);
+  box-shadow: 0 12px 32px -12px rgb(0 0 0 / .35);
+}
+.ec-inline textarea { width: 100%; font: inherit; font-size: 1rem; padding: 0.5rem; border: 1px solid var(--iv-line); border-radius: 6px; resize: vertical; }
+.ec-inline-btns { display: flex; flex-wrap: wrap; gap: 0.375rem; }
+.ec-inline-btns .iv-btn { min-height: 36px; padding: 0 0.75rem; font-size: 0.875rem; }

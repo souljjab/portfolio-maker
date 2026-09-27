@@ -22,13 +22,16 @@ export function fontHrefs(tokens) {
 
 /**
  * @param {{ portfolio: import("../schema/types.js").Portfolio, tokens: import("../schema/types.js").DesignTokens,
- *           template: string, preview?: boolean }} opts
+ *           template: string, preview?: boolean, editable?: boolean }} opts
  *   preview: 미리보기용이면 링크를 새 창으로 열도록 <base target="_blank">를 넣는다(iframe 안에서 이동 방지)
+ *   editable: 편집기 캔버스용이면 칸 표시(data-pf-field)를 남긴다. 그 밖(발행·내려받기·3안 미리보기)에선 지운다
  */
-export function renderPortfolioHtml({ portfolio, tokens, template, preview = false }) {
+export function renderPortfolioHtml({ portfolio, tokens, template, preview = false, editable = false }) {
   const Template = getTemplate(template);
   if (!Template) throw new Error(`템플릿 없음: ${template}`);
-  const body = renderToStaticMarkup(createElement(Template, { portfolio, tokens }));
+  const markup = renderToStaticMarkup(createElement(Template, { portfolio, tokens }));
+  // 값은 필드 이름·순서뿐(사용자 글 없음)이라 이 정규식으로 안전하게 지워진다
+  const body = editable ? markup : markup.replace(/ data-pf-field="[^"]*"/g, "");
   const bg = tokensToCssVars(tokens)["--c-bg"]; // 검증된 값만 사용
   const links = fontHrefs(tokens).map((h) => `<link rel="stylesheet" href="${esc(h)}">`).join("");
   return "<!doctype html><html lang=\"ko\"><head><meta charset=\"utf-8\">"

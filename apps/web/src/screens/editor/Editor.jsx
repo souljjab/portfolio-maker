@@ -3,7 +3,7 @@ import { loadDraft, saveDraft, uploadImage, loadInterview, saveInterview } from 
 import { tokenEdits } from "../../engine/edits.js";
 import { replayAnswers } from "../../engine/replay.js";
 import { LIMITS, normalizeUrl, parseTags, validatePortfolio, newProject } from "../../engine/content.js";
-import PreviewFrame from "../directions/PreviewFrame.jsx";
+import EditCanvas from "./EditCanvas.jsx";
 import EdField from "./EdField.jsx";
 import DesignPanel from "./DesignPanel.jsx";
 import { useResolvedPortfolio } from "../useResolvedPortfolio.js";
@@ -42,6 +42,7 @@ export default function Editor({ onGoInterview, onPublish, initialFocus }) {
   const [announce, setAnnounce] = useState("");
   const [tab, setTab] = useState("form");          // 좁은 화면: 내용 / 미리보기
   const [device, setDevice] = useState("desktop");
+  const [, setFocusTick] = useState(0); // 캔버스에서 칸을 눌렀을 때 다시 그려 focus 이동 effect를 돌린다
   const [previewDraft, setPreviewDraft] = useState(null);
   const [imgState, setImgState] = useState({});  // 작업 id → { busy } | { error } | { done }
   const [designNote, setDesignNote] = useState("");
@@ -99,7 +100,7 @@ export default function Editor({ onGoInterview, onPublish, initialFocus }) {
 
   const drawable = useResolvedPortfolio(previewDraft); // 이미지 참조를 푼 그리기용 사본
   const html = useMemo(() => (drawable?.tokens && drawable.template && render
-    ? render({ portfolio: drawable, tokens: drawable.tokens, template: drawable.template, preview: true })
+    ? render({ portfolio: drawable, tokens: drawable.tokens, template: drawable.template, preview: true, editable: true })
     : null), [drawable, render]);
   const thumbOf = (id) => drawable?.projects.find((x) => x.id === id)?.cover ?? null;
 
@@ -130,6 +131,32 @@ export default function Editor({ onGoInterview, onPublish, initialFocus }) {
   const setPerson = (key) => (v) => edit((d) => { d.person[key] = v; });
   const setProject = (i, key) => (v) => edit((d) => { d.projects[i][key] = v; });
   const setLink = (i, key) => (v) => edit((d) => { d.person.links[i][key] = v; });
+
+  // 캔버스의 칸 이름(data-pf-field) ↔ 초안·입력 칸
+  const PERSON_LIMIT = { name: LIMITS.name, headline: LIMITS.headline, bio: LIMITS.bio };
+  const projectOf = (field) => {
+    const m = /^project\.(\d+)(?:\.(title|summary))?$/.exec(field);
+    return m && draft.projects[+m[1]] ? { p: draft.projects[+m[1]], i: +m[1], key: m[2] } : null;
+  };
+  const canvasValue = (field) => (field in PERSON_LIMIT ? draft.person[field] : projectOf(field)?.p[projectOf(field).key] ?? "");
+  const canvasMax = (field) => PERSON_LIMIT[field] ?? (projectOf(field)?.key === "summary" ? LIMITS.summary : LIMITS.title);
+  const canvasInline = (field, value) => {
+    const v = value.slice(0, canvasMax(field));
+    if (field in PERSON_LIMIT) return setPerson(field)(v);
+    const pj = projectOf(field);
+    if (pj?.key) setProject(pj.i, pj.key)(v);
+  };
+  const canvasPick = (field) => {
+    const pj = projectOf(field);
+    const link = /^links\.(\d+)$/.exec(field);
+    const id = field in PERSON_LIMIT ? `ed-${field}`
+      : pj ? `ed-p-${pj.p.id}-${pj.key ?? "title"}`
+      : link ? `ed-l-${link[1]}-label` : null;
+    if (!id) return;
+    pendingFocus.current = id;
+    setTab("form"); // 좁은 화면에선 입력 칸이 다른 탭에 있다
+    setFocusTick((t) => t + 1);
+  };
 
   const move = (list, i, dir, what) => {
     const j = i + dir;
@@ -315,12 +342,10 @@ export default function Editor({ onGoInterview, onPublish, initialFocus }) {
         </form>
 
         <aside className="ed-preview" aria-label="미리보기">
-          <div className="dr-seg" role="group" aria-label="화면 크기">
-            {[["desktop", "데스크톱"], ["mobile", "모바일"]].map(([k, t]) => (
-              <button key={k} type="button" aria-pressed={device === k} onClick={() => setDevice(k)}>{t}</button>
-            ))}
-          </div>
-          {html && <PreviewFrame key={device} mode="full" device={device} html={html} title="내 포트폴리오 미리보기" />}
+          {html && (
+            <EditCanvas html={html} device={device} onDevice={setDevice}
+              getValue={canvasValue} maxLength={canvasMax} onInline={canvasInline} onPick={canvasPick} />
+          )}
         </aside>
       </div>
 

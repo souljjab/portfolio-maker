@@ -12,7 +12,7 @@ export default function QuietEditorial({ portfolio, tokens }) {
   const sections = {
     hero: () => (
       <section key="hero" className="qe-section qe-hero qe-wrap">
-        <h1 className="pf-hero-title pf-headline">{person.headline || person.name}</h1>
+        <h1 className="pf-hero-title pf-headline" data-pf-field={person.headline ? "headline" : "name"}>{person.headline || person.name}</h1>
       </section>
     ),
     projects: () => (
@@ -21,11 +21,11 @@ export default function QuietEditorial({ portfolio, tokens }) {
         <ol className="qe-projects">
           {projects.map((p, i) => (
             <li key={p.id}>
-              <article className="qe-project pf-card">
+              <article className="qe-project pf-card" data-pf-field={`project.${i}`}>
                 <div>
                   <p className="qe-meta"><span>{p.year}</span><span>{p.role}</span></p>
-                  <h3>{p.title}</h3>
-                  <p>{p.summary}</p>
+                  <h3 data-pf-field={`project.${i}.title`}>{p.title}</h3>
+                  <p data-pf-field={`project.${i}.summary`}>{p.summary}</p>
                   {p.tags.length > 0 && <p className="qe-tags">{p.tags.join(" · ")}</p>}
                 </div>
                 <Cover project={p} ratio={CROPS[i % CROPS.length]} />
@@ -38,14 +38,14 @@ export default function QuietEditorial({ portfolio, tokens }) {
     about: () => (
       <section key="about" className="qe-section qe-about qe-wrap" aria-labelledby="qe-about">
         <h2 id="qe-about" className="qe-label">소개</h2>
-        <p>{person.bio}</p>
+        <p data-pf-field="bio">{person.bio}</p>
       </section>
     ),
     contact: () => (
       <section key="contact" className="qe-section qe-wrap" aria-labelledby="qe-contact">
         <h2 id="qe-contact" className="qe-label">연락</h2>
         <ul className="qe-links pf-links">
-          {person.links.map((l, i) => <li key={i}><SafeLink link={l} /></li>)}
+          {person.links.map((l, i) => <li key={i} data-pf-field={`links.${i}`}><SafeLink link={l} /></li>)}
         </ul>
       </section>
     ),

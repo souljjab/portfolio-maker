@@ -31,8 +31,8 @@ export default function BoldType({ portfolio, tokens }) {
   const sections = {
     hero: () => (
       <section key="hero" className="bt-hero bt-wrap">
-        <h1 className="pf-hero-title" style={{ "--bt-name-size": nameSize(person.name) }}>{person.name}</h1>
-        <p className="bt-headline pf-headline">{person.headline}</p>
+        <h1 className="pf-hero-title" data-pf-field="name" style={{ "--bt-name-size": nameSize(person.name) }}>{person.name}</h1>
+        <p className="bt-headline pf-headline" data-pf-field="headline">{person.headline}</p>
       </section>
     ),
     projects: () => (
@@ -44,11 +44,11 @@ export default function BoldType({ portfolio, tokens }) {
         <ol>
           {projects.map((p, i) => (
             <li key={p.id}>
-              <article className="bt-project pf-card">
+              <article className="bt-project pf-card" data-pf-field={`project.${i}`}>
                 <span className="bt-index" aria-hidden="true">{pad(i + 1)}</span>
                 <div>
-                  <h3>{p.title}</h3>
-                  <p>{p.summary}</p>
+                  <h3 data-pf-field={`project.${i}.title`}>{p.title}</h3>
+                  <p data-pf-field={`project.${i}.summary`}>{p.summary}</p>
                 </div>
                 <div className="bt-side">
                   <Cover project={p} />
@@ -71,7 +71,7 @@ export default function BoldType({ portfolio, tokens }) {
             <span className="bt-mono" aria-hidden="true">{num("about")}</span>
             <h2 id="bt-about">소개</h2>
           </div>
-          <p>{person.bio}</p>
+          <p data-pf-field="bio">{person.bio}</p>
         </div>
       </section>
     ),
@@ -82,7 +82,7 @@ export default function BoldType({ portfolio, tokens }) {
           <h2 id="bt-contact">연락</h2>
         </div>
         <ul className="bt-links pf-links">
-          {person.links.map((l, i) => <li key={i}><SafeLink link={l} /></li>)}
+          {person.links.map((l, i) => <li key={i} data-pf-field={`links.${i}`}><SafeLink link={l} /></li>)}
         </ul>
       </section>
     ),
