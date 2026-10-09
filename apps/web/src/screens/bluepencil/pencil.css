@@ -1,0 +1,11 @@
+/* 블루펜슬 화면 틀: 위쪽 막대 + 편집기가 남은 높이를 모두 쓴다 */
+.pcl{display:flex;flex-direction:column;height:100vh;height:100dvh;background:#E4E6E0;color:#1C1E21;font-family:system-ui,-apple-system,'Apple SD Gothic Neo','Malgun Gothic',sans-serif;color-scheme:light}
+.pcl .bp{flex:1;min-height:0;height:auto}
+.pcl-bar{flex:none;display:flex;flex-wrap:wrap;align-items:center;gap:8px 12px;padding:8px 12px;background:#fff;border-bottom:1px solid #D5D7D0;font-size:14px}
+.pcl-bar button{min-height:32px;padding:0 12px;border-radius:8px;border:1px solid #D5D7D0;background:#fff;color:#1C1E21;font:inherit;cursor:pointer}
+.pcl-bar button:focus-visible{outline:2px solid #2F4AE0;outline-offset:2px}
+.pcl-bar .pcl-primary{background:#2F4AE0;border-color:#2F4AE0;color:#fff;font-weight:600}
+.pcl-status{margin-inline-start:auto;color:#575B61;font-size:13px}
+.pcl-stale{display:inline-flex;flex-wrap:wrap;align-items:center;gap:8px;padding:4px 4px 4px 10px;border-radius:8px;background:#FFF4D6;color:#5C3D00;font-size:13px}
+.pcl-loading,.pcl-empty{padding:24px;font-family:system-ui,sans-serif}
+.pcl-empty button{min-height:40px;padding:0 16px}

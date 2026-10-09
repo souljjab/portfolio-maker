@@ -1,10 +1,12 @@
-import { useEffect, useState } from "react";
+import { lazy, Suspense, useEffect, useState } from "react";
 import { createEmptyDNA, AXES } from "./schema/types.js";
 import { GRAMMARS } from "./data/grammars.js";
 import { applyCardReaction, pickUncertainAxis, pickPairFor, applyPairwise, computeGrammarMix } from "./engine/taste.js";
 import GrammarLab from "./screens/GrammarLab.jsx";
 import Interview from "./screens/interview/Interview.jsx";
 import Editor from "./screens/editor/Editor.jsx";
+// 블루펜슬은 크고(편집기·아이콘) 디자인 다듬기에서만 쓰므로 그때 불러온다
+const Pencil = lazy(() => import("./screens/bluepencil/Pencil.jsx"));
 import Publish from "./screens/publish/Publish.jsx";
 import SyncStatus from "./screens/SyncStatus.jsx";
 import StartGate from "./screens/start/StartGate.jsx";
@@ -57,6 +59,14 @@ function Workspace() {
   // 다른 기기의 내용을 가져오면 열려 있던 화면을 새로 불러온다(오래된 화면이 새 내용을 덮어쓰지 않게)
   const [reloadKey, setReloadKey] = useState(0);
   useEffect(() => onRemoteApplied(() => setReloadKey((k) => k + 1)), []);
+  // 블루펜슬은 화면 전체를 쓴다 (편집기 자체가 위쪽 도구 막대·패널을 갖고 있음)
+  if (view === "pencil") {
+    return (
+      <Suspense fallback={<p role="status" style={{ padding: 24, fontFamily: "system-ui, sans-serif" }}>편집기를 불러오는 중…</p>}>
+        <Pencil key={reloadKey} onBack={() => setView("editor")} onPublish={() => setView("publish")} />
+      </Suspense>
+    );
+  }
   return (
     <div style={{ maxWidth: 1280, margin: "0 auto", padding: 24, fontFamily: "system-ui, sans-serif", colorScheme: "light", background: "#fff", color: "#111" }}>
       <nav style={{ display: "flex", gap: 8, marginBottom: 16 }}>
@@ -75,6 +85,7 @@ function Workspace() {
           initialFocus={editorFocus}
           onGoInterview={() => setView("interview")}
           onPublish={() => setView("publish")}
+          onOpenPencil={() => setView("pencil")}
         />
       )}
       {view === "publish" && <Publish onEdit={(fieldId) => { setEditorFocus(fieldId); setView("editor"); }} />}

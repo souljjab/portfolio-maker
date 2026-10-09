@@ -6,7 +6,7 @@ import { fail } from "./lib/http.js";
 import { startLogin, verifyLogin, me, logout, setAge, setAi, guardianPage, guardianConsent, guardianWithdrawPage, guardianWithdraw } from "./auth.js";
 import { uploadImage, checkSlug, mySite, publish, unpublish } from "./publish.js";
 import { getDraft, putDraft, getImage, listVersions, getVersion, createVersion } from "./drafts.js";
-import { aiDirections, aiEdit } from "./ai.js";
+import { aiDirections, aiEdit, aiPencil } from "./ai.js";
 import { requestDeletion, cancelDeletion, devPurge, purgeDueAccounts, cleanupExpired } from "./account.js";
 
 const ROUTES = {
@@ -34,6 +34,7 @@ const ROUTES = {
   "POST /api/versions": createVersion,
   "POST /api/ai/directions": aiDirections,
   "POST /api/ai/edit": aiEdit,
+  "POST /api/ai/pencil": aiPencil,
 };
 
 export default {

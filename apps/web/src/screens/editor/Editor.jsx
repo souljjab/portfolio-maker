@@ -1,40 +1,23 @@
 import { useEffect, useMemo, useRef, useState } from "react";
-import { loadDraft, saveDraft, uploadImage, loadInterview, saveInterview, requestAiEdit, saveVersion, loadVersion, getCurrentAccount, onAccountChange } from "../../api/index.js";
-import { acceptAiEdits } from "../../engine/aiEdits.js";
-import { tokenEdits } from "../../engine/edits.js";
-import { replayAnswers } from "../../engine/replay.js";
+import { loadDraft, saveDraft, uploadImage, saveVersion, loadVersion, resolveImageRefs } from "../../api/index.js";
 import { LIMITS, normalizeUrl, parseTags, validatePortfolio, newProject } from "../../engine/content.js";
-import EditCanvas from "./EditCanvas.jsx";
-import AskPanel from "./AskPanel.jsx";
+import { IMAGE_REF, isPencilStale } from "../../engine/pencil.js";
 import VersionPanel from "./VersionPanel.jsx";
 import EdField from "./EdField.jsx";
-import DesignPanel from "./DesignPanel.jsx";
 import { useResolvedPortfolio } from "../useResolvedPortfolio.js";
 import "../interview/interview.css";
 import "../directions/directions.css";
 import "./editor.css";
 
-/**
- * 디자인 편집 기록을 인터뷰 세션에 남기고 DNA를 다시 계산한다 (edit 신호, 가중치 가장 큼).
- * 3안을 고른 세션이 있을 때만 — 편집은 고른 안을 기준으로 한 차이라서.
- */
-async function recordEditsToSession(changes) {
-  const session = await loadInterview();
-  if (!session.answers.directions) return;
-  const answers = { ...session.answers, edits: { changes } };
-  if (!changes.length) delete answers.edits;
-  await saveInterview({ ...session, answers, dna: replayAnswers(answers) });
-}
-
 const timeText = (iso) => new Date(iso).toLocaleTimeString("ko-KR", { hour: "numeric", minute: "2-digit" });
 
 /**
- * 편집기(콘텐츠만): 이름·한 줄 소개·소개글·작업·링크를 고치고 실시간 미리보기로 확인.
+ * 내용 입력: 이름·한 줄 소개·소개글·작업·이미지·링크를 고치고 미리보기로 확인.
  * - 초안은 입력이 멈추면 자동 저장(불완전해도 저장). 오류는 칸 옆에 안내만 하고 막지 않는다.
  * - 순서 이동은 위·아래 버튼(끝에서는 aria-disabled로 focus 유지), 삭제는 확인창 대신 되돌리기.
- * - 디자인(템플릿·토큰)은 인터뷰에서 고른 안 그대로. 토큰 조정은 다음 범위.
+ * - 디자인 다듬기는 블루펜슬 편집기(onOpenPencil, screens/bluepencil/). 다듬은 페이지가 있으면 미리보기·발행은 그 페이지.
  */
-export default function Editor({ onGoInterview, onPublish, initialFocus }) {
+export default function Editor({ onGoInterview, onPublish, onOpenPencil, initialFocus }) {
   const [draft, setDraft] = useState(null);
   const [render, setRender] = useState(null);
   const [saved, setSaved] = useState(null);        // 마지막 저장 시각
@@ -44,42 +27,23 @@ export default function Editor({ onGoInterview, onPublish, initialFocus }) {
   const [undo, setUndo] = useState(null);          // { kind: "project"|"link", item, index, name }
   const [announce, setAnnounce] = useState("");
   const [tab, setTab] = useState("form");          // 좁은 화면: 내용 / 미리보기
-  const [device, setDevice] = useState("desktop");
-  const [notes, setNotes] = useState([]);           // 캔버스에서 단 Claude용 메모 [{ kind, target | targets, to?, request, mark? }]
-  const [askMessage, setAskMessage] = useState("");
-  const [askBusy, setAskBusy] = useState(false);
-  const [askResult, setAskResult] = useState(null); // { reply, changes, skipped, before } | { error }
-  const [aiOff, setAiOff] = useState(() => getCurrentAccount()?.aiEnabled === false); // 계정 설정에서 AI를 끔
-  useEffect(() => onAccountChange((u) => setAiOff(u?.aiEnabled === false)), []);
   const [versionsKey, setVersionsKey] = useState(0); // 버전을 저장하면 목록을 다시 불러온다
   const lastSnap = useRef({ at: null, json: "" }); // 자동 버전(편집 10분마다) 기준 — 첫 자동 저장부터 잰다
-  const [, setFocusTick] = useState(0); // 캔버스에서 칸을 눌렀을 때 다시 그려 focus 이동 effect를 돌린다
   const [previewDraft, setPreviewDraft] = useState(null);
   const [imgState, setImgState] = useState({});  // 작업 id → { busy } | { error } | { done }
-  const [designNote, setDesignNote] = useState("");
-  const recordedEdits = useRef(null);            // 마지막으로 인터뷰 세션에 기록한 편집 (같으면 다시 쓰지 않음)
+  const [pencilHtml, setPencilHtml] = useState(null); // 다듬은 페이지 미리보기 (이미지 참조를 푼 것)
   const pendingFocus = useRef(initialFocus ?? null); // 발행 화면에서 "고치러 가기"로 왔으면 그 칸부터
 
   useEffect(() => {
     Promise.all([loadDraft(), import("../../templates/renderHtml.js")]).then(([loaded, mod]) => {
       // 원래 토큰이 없는 예전 초안은 지금 토큰을 기준으로 삼는다(다음 저장 때 함께 저장)
       const d = loaded.tokens && !loaded.originTokens ? { ...loaded, originTokens: loaded.tokens } : loaded;
-      recordedEdits.current = JSON.stringify(tokenEdits(d.originTokens, d.tokens));
       setDraft(d);
       setPreviewDraft(d);
       setRender(() => mod.renderPortfolioHtml);
       setTagText(Object.fromEntries(d.projects.map((p) => [p.id, p.tags.join(", ")])));
     });
   }, []);
-
-  /** 저장 뒤: 디자인 편집이 달라졌으면 세션에 기록 */
-  function recordEdits(d) {
-    const changes = tokenEdits(d.originTokens, d.tokens);
-    const key = JSON.stringify(changes);
-    if (key === recordedEdits.current) return;
-    recordedEdits.current = key;
-    recordEditsToSession(changes);
-  }
 
   // 자동 저장 (입력이 0.6초 멈추면)
   useEffect(() => {
@@ -88,7 +52,6 @@ export default function Editor({ onGoInterview, onPublish, initialFocus }) {
       const r = await saveDraft(draft);
       setSaved(r.savedAt);
       setDirty(false);
-      recordEdits(draft);
       const json = JSON.stringify(draft);
       if (lastSnap.current.at === null) lastSnap.current = { at: Date.now(), json };
       else if (Date.now() - lastSnap.current.at > 10 * 60_000 && json !== lastSnap.current.json) {
@@ -117,9 +80,18 @@ export default function Editor({ onGoInterview, onPublish, initialFocus }) {
 
   const drawable = useResolvedPortfolio(previewDraft); // 이미지 참조를 푼 그리기용 사본
   const html = useMemo(() => (drawable?.tokens && drawable.template && render
-    ? render({ portfolio: drawable, tokens: drawable.tokens, template: drawable.template, preview: true, editable: true })
+    ? render({ portfolio: drawable, tokens: drawable.tokens, template: drawable.template, preview: true })
     : null), [drawable, render]);
   const thumbOf = (id) => drawable?.projects.find((x) => x.id === id)?.cover ?? null;
+  const savedPencil = previewDraft?.pencil?.html ?? null;
+  useEffect(() => {
+    if (!savedPencil) { setPencilHtml(null); return undefined; }
+    let alive = true;
+    resolveImageRefs(savedPencil.match(IMAGE_REF) ?? []).then((urls) => {
+      if (alive) setPencilHtml(savedPencil.replace(IMAGE_REF, (r) => urls[r] ?? r));
+    });
+    return () => { alive = false; };
+  }, [savedPencil]);
 
   if (!draft) return <p role="status">불러오는 중…</p>;
 
@@ -138,6 +110,7 @@ export default function Editor({ onGoInterview, onPublish, initialFocus }) {
   const errorFor = (path) => (touched.has(path) ? errors[path] : undefined);
   const touch = (path) => setTouched((t) => new Set(t).add(path));
   const problemCount = Object.keys(errors).length;
+  const stale = isPencilStale(draft);
 
   /** 초안 고치기: fn이 복사본을 고친다 */
   const edit = (fn) => {
@@ -148,54 +121,6 @@ export default function Editor({ onGoInterview, onPublish, initialFocus }) {
   const setPerson = (key) => (v) => edit((d) => { d.person[key] = v; });
   const setProject = (i, key) => (v) => edit((d) => { d.projects[i][key] = v; });
   const setLink = (i, key) => (v) => edit((d) => { d.person.links[i][key] = v; });
-
-  // 캔버스의 칸 이름(data-pf-field) ↔ 초안·입력 칸
-  const PERSON_LIMIT = { name: LIMITS.name, headline: LIMITS.headline, bio: LIMITS.bio };
-  const projectOf = (field) => {
-    const m = /^project\.(\d+)(?:\.(title|summary))?$/.exec(field);
-    return m && draft.projects[+m[1]] ? { p: draft.projects[+m[1]], i: +m[1], key: m[2] } : null;
-  };
-  const canvasValue = (field) => (field in PERSON_LIMIT ? draft.person[field] : projectOf(field)?.p[projectOf(field).key] ?? "");
-  const canvasMax = (field) => PERSON_LIMIT[field] ?? (projectOf(field)?.key === "summary" ? LIMITS.summary : LIMITS.title);
-  const canvasInline = (field, value) => {
-    const v = value.slice(0, canvasMax(field));
-    if (field in PERSON_LIMIT) return setPerson(field)(v);
-    const pj = projectOf(field);
-    if (pj?.key) setProject(pj.i, pj.key)(v);
-  };
-  const canvasSnippet = (field) => {
-    if (/^links\./.test(field)) return draft.person.links[+field.split(".")[1]]?.label ?? "";
-    const pj = projectOf(field);
-    const v = pj && !pj.key ? pj.p.title : canvasValue(field);
-    return v.length > 24 ? `${v.slice(0, 24)}…` : v;
-  };
-
-  /** Claude에게 메모·부탁을 보내고, 돌아온 변경을 이 초안에 다시 검사해 적용 (되돌리기용으로 이전 초안 보관) */
-  const askClaude = async () => {
-    setAskBusy(true);
-    setAskResult(null);
-    const before = draft;
-    const r = await requestAiEdit({ portfolio: before, notes, message: askMessage });
-    setAskBusy(false);
-    if (!r.ok) { setAskResult({ error: r.reason ?? "부탁을 보내지 못했어요." }); return; }
-    const acc = acceptAiEdits(r, before);
-    if (acc.changes.length) {
-      saveVersion("Claude 다듬기 전", before).then((v) => { if (v.ok) setVersionsKey((k) => k + 1); });
-      setDraft(acc.draft);
-      setDirty(true);
-      setUndo(null);
-      setNotes([]);
-      setAskMessage("");
-    }
-    setAskResult({ reply: acc.reply, changes: acc.changes, skipped: acc.skipped, before });
-  };
-  const undoClaude = () => {
-    if (!askResult?.before) return;
-    setDraft(askResult.before);
-    setDirty(true);
-    setAskResult(null);
-    setAnnounce("Claude가 바꾼 곳을 모두 되돌렸어요.");
-  };
 
   /** 버전 기록: 지금 저장 / 되돌리기(되돌리기 전 상태도 버전으로 남긴다) */
   const saveNow = async (label) => {
@@ -211,21 +136,8 @@ export default function Editor({ onGoInterview, onPublish, initialFocus }) {
     setDraft({ ...v.portfolio, id: draft.id, slug: draft.slug, status: draft.status });
     setDirty(true);
     setUndo(null);
-    setAskResult(null);
     setVersionsKey((k) => k + 1);
     return { ok: true };
-  };
-
-  const canvasPick = (field) => {
-    const pj = projectOf(field);
-    const link = /^links\.(\d+)$/.exec(field);
-    const id = field in PERSON_LIMIT ? `ed-${field}`
-      : pj ? `ed-p-${pj.p.id}-${pj.key ?? "title"}`
-      : link ? `ed-l-${link[1]}-label` : null;
-    if (!id) return;
-    pendingFocus.current = id;
-    setTab("form"); // 좁은 화면에선 입력 칸이 다른 탭에 있다
-    setFocusTick((t) => t + 1);
   };
 
   const move = (list, i, dir, what) => {
@@ -294,7 +206,7 @@ export default function Editor({ onGoInterview, onPublish, initialFocus }) {
       <div className="ed-head">
         <div>
           <h1 className="iv-question">내용 채우기</h1>
-          <p className="iv-hint">디자인은 고른 안 그대로예요. 내용을 바꾸면 미리보기에 바로 보여요.</p>
+          <p className="iv-hint">내용은 여기서, 디자인은 블루펜슬에서 다듬어요.</p>
         </div>
         <div className="ed-head-side">
           <p className="ed-status" role="status">
@@ -399,34 +311,21 @@ export default function Editor({ onGoInterview, onPublish, initialFocus }) {
               );
             })}
           </section>
-          <section className="ed-sec" aria-labelledby="ed-design-h">
-            <h2 id="ed-design-h">디자인 다듬기</h2>
-            <p className="iv-meta iv-left">배치는 고른 안 그대로 두고 색·글꼴·크기를 바꾸거나 개성 포인트를 얹을 수 있어요.</p>
-            <DesignPanel
-              tokens={draft.tokens}
-              origin={draft.originTokens ?? draft.tokens}
-              onChange={(t, note) => { edit((d) => { d.tokens = t; }); setDesignNote(note); }}
-            />
-            <p className="ed-hint" role="status">{designNote}</p>
-          </section>
         </form>
 
         <aside className="ed-preview" aria-label="미리보기">
-          {html && (
-            <EditCanvas html={html} device={device} onDevice={setDevice}
-              getValue={canvasValue} maxLength={canvasMax} onInline={canvasInline} onPick={canvasPick}
-              notes={notes} onAddNote={(note) => { setNotes((n) => [...n, note]); setAnnounce(`${notes.length + 1}번 메모를 남겼어요.`); }}
-              template={draft.template} tokens={draft.tokens}
-              onTune={(path, value) => edit((d) => {
-                const [group, key] = path.split(".");
-                if (group === "tune") d.tokens.tune = { ...(d.tokens.tune ?? {}), [key]: value };
-                else d.tokens[group][key] = value;
-                if (path === "radius.lg") d.tokens.radius.sm = Math.round(value * 0.4);
-              })} />
+          <section className="ed-pencil" aria-labelledby="ed-pencil-h">
+            <h2 id="ed-pencil-h">디자인 다듬기</h2>
+            {stale ? (
+              <p className="ed-hint">내용을 바꾼 뒤로 다듬은 페이지에 아직 반영되지 않았어요. 블루펜슬에서 “내용으로 다시 만들기”를 누르면 반영돼요.</p>
+            ) : (
+              <p className="ed-hint">{draft.pencil ? "블루펜슬에서 다듬은 페이지가 발행돼요." : "블루펜슬 편집기에서 표시·메모·직접 고치기·슬라이더·Claude 대화로 디자인을 다듬어요."}</p>
+            )}
+            {onOpenPencil && <button type="button" className="iv-btn iv-btn-primary" onClick={onOpenPencil}>블루펜슬로 다듬기</button>}
+          </section>
+          {(pencilHtml ?? html) && (
+            <iframe className="ed-frame" title={draft.pencil ? "다듬은 페이지 미리보기" : "미리보기"} sandbox="" srcDoc={pencilHtml ?? html} />
           )}
-          <AskPanel notes={notes} onRemoveNote={(i) => setNotes((n) => n.filter((_, k) => k !== i))}
-            message={askMessage} onMessage={setAskMessage} busy={askBusy} onAsk={askClaude}
-            result={askResult} onUndo={undoClaude} snippet={canvasSnippet} aiOff={aiOff} />
           <VersionPanel onSave={saveNow} onRestore={restoreVersion} refreshKey={versionsKey} />
         </aside>
       </div>

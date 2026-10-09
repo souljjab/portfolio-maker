@@ -1,6 +1,7 @@
 import { useCallback, useEffect, useRef, useState } from "react";
-import { loadDraft, checkSlug, publish, resolveImages, getSite, unpublish } from "../../api/index.js";
+import { loadDraft, checkSlug, publish, resolveImages, resolveImageRefs, getSite, unpublish } from "../../api/index.js";
 import { validatePortfolio, publishWarnings } from "../../engine/content.js";
+import { IMAGE_REF, isPencilStale } from "../../engine/pencil.js";
 import { downloadFile, fileBase } from "./download.js";
 import AccountStep from "./AccountStep.jsx";
 import "../interview/interview.css";
@@ -77,6 +78,7 @@ export default function Publish({ onEdit }) {
 
   const errors = Object.entries(validatePortfolio(draft));
   const warnings = publishWarnings(draft);
+  if (isPencilStale(draft)) warnings.push("블루펜슬에서 다듬은 페이지가 발행돼요. 그 뒤 내용 입력에서 바꾼 곳은 아직 반영되지 않았어요(블루펜슬의 “내용으로 다시 만들기”).");
   const canPublish = !errors.length && slugState?.ok === true && account?.canPublish === true && !busy;
   const blocker = errors.length ? "먼저 고칠 곳을 채워 주세요."
     : slugState?.ok !== true ? "사용할 수 있는 주소를 정하면 발행할 수 있어요."
@@ -109,7 +111,11 @@ export default function Publish({ onEdit }) {
   const download = async (kind) => {
     const drawable = await resolveImages(draft);
     const base = fileBase(draft.slug || slug);
-    if (kind === "html") {
+    if (kind === "html" && draft.pencil?.html) {
+      // 블루펜슬로 다듬은 페이지: 이미지 참조를 파일 안에 넣은 사본
+      const urls = await resolveImageRefs(draft.pencil.html.match(IMAGE_REF) ?? []);
+      downloadFile(`${base}.html`, draft.pencil.html.replace(IMAGE_REF, (r) => urls[r] ?? ""), "text/html");
+    } else if (kind === "html") {
       const { renderPortfolioHtml } = await import("../../templates/renderHtml.js");
       downloadFile(`${base}.html`, renderPortfolioHtml({ portfolio: drawable, tokens: drawable.tokens, template: drawable.template }), "text/html");
     } else {

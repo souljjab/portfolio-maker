@@ -28,7 +28,7 @@
 완료: 편집기 범위 A(콘텐츠만, `src/screens/editor/`) — 이름·한 줄 소개·소개글·작업(추가·순서·삭제/되돌리기·태그)·링크(이메일→mailto 자동 변환), 자동 저장, 실시간 미리보기. 검증은 `src/engine/content.js`(발행 전 검사에도 재사용).
 완료: 이미지 업로드(브라우저에서 긴 변 1600px WebP로 줄여 IndexedDB 저장, 초안엔 "img:<id>" 참조만), 이미지 설명(alt).
 완료: 가짜 publish(`src/screens/publish/`) — 발행 전 점검(오류는 막고 "고치러 가기"로 해당 칸 이동, 주의사항은 안내만), 슬러그 검사, 연습 발행, HTML(이미지 내장 단일 파일)·JSON 내려받기.
-완료: 디자인 다듬기(편집기) — 강조색·배경 톤·글꼴·글자 크기 차이·여백·모서리·움직임, 모든 변경은 대비 게이트 재통과. 고른 안 대비 바뀐 곳을 edit 신호로 DNA에 반영.
+완료: 디자인 다듬기(편집기) — 강조색·배경 톤·글꼴·글자 크기 차이·여백·모서리·움직임, 모든 변경은 대비 게이트 재통과. 고른 안 대비 바뀐 곳을 edit 신호로 DNA에 반영. (→ 2026-10-09 블루펜슬 원본으로 교체되어 화면 삭제)
 완료: 루트 랜딩(`landing.html` + `src/landing/`) — 본문은 정적 HTML(스크립트 없이도 읽힘), 첫 화면 그림만 카드 썸네일로 덧붙임.
 완료: 로그인(이메일 6자리 코드) — `workers/app`. 세션 D1, `__Host-session` 쿠키, Origin+CSRF, 나이 확인·보호자 동의(동의 페이지는 버튼을 눌러야 동의). 발행 화면에 계정 단계.
 완료: 실제 발행 — 이미지 업로드(파일 앞 바이트로 형식 확인, 내용 해시 이름) → 서버가 앱과 같은 템플릿으로 렌더링 → R2 `sites/{주소}/` → 라우터가 서빙. 계정당 사이트 하나(다른 주소로 발행하면 옮김), 비공개 전환. 사이트 CSP `script-src 'none'`, HTML `no-cache`+ETag 304.
@@ -37,14 +37,15 @@
 완료: 가입·로그인 후 시작 — 앱 첫 화면이 "무료로 시작하기"(`src/screens/start/`). 로그아웃하면 이 기기 작업을 지운다.
 완료: Claude 3안 평가 세트(`workers/app/eval/directions/`, 페르소나 24명) — 무료 파일럿(규칙 엔진)까지. 유료 실행(v1 low·v2 medium)은 API 키·하네스 승인 뒤.
 완료: 블루펜슬 편집기 옮기기 1단계 — 개성 포인트 6종(`src/templates/addons.js`), 분위기 프리셋 4종(`src/data/moodPresets.js`), 글꼴 12종(`fonts.js`). 편집기 "디자인 다듬기"에서 켜고, 발행 사이트에도 같게 나온다.
-완료: 블루펜슬 2단계 — 편집 캔버스(`src/screens/editor/EditCanvas.jsx`): 데스크톱·태블릿·모바일, 미리보기에서 이름·한 줄 소개·소개글·작업 제목·설명을 그 자리에서 고치기, 작업·링크를 누르면 입력 칸으로.
-완료: 블루펜슬 3단계 — Claude로 다듬기: 캔버스 "메모" 모드(누른 곳에 번호 메모) + "Claude에게 부탁하기"(`AskPanel.jsx`) → `/api/ai/edit` → 변경 목록만 받아 검사 후 적용, 모두 되돌리기. 키가 없으면 안내만.
-완료: 블루펜슬 나머지 — 표시 도구(영역·펜·화살표 → Claude 메모, `MarkLayer.jsx`), 맞춤 슬라이더("조절" 모드 + `tokens.tune`, `templates/tune.js`, `TunePanel.jsx`), 버전 기록(서버 D1 `draft_versions` 최근 30개, `VersionPanel.jsx`).
+완료: 블루펜슬 2단계 — 편집 캔버스(`src/screens/editor/EditCanvas.jsx`): 데스크톱·태블릿·모바일, 미리보기에서 이름·한 줄 소개·소개글·작업 제목·설명을 그 자리에서 고치기, 작업·링크를 누르면 입력 칸으로. (→ 2026-10-09 블루펜슬 원본으로 교체되어 화면 삭제)
+완료: 블루펜슬 3단계 — Claude로 다듬기: 캔버스 "메모" 모드(누른 곳에 번호 메모) + "Claude에게 부탁하기"(`AskPanel.jsx`) → `/api/ai/edit` → 변경 목록만 받아 검사 후 적용, 모두 되돌리기. 키가 없으면 안내만. (→ 2026-10-09 블루펜슬 원본으로 교체되어 화면 삭제)
+완료: 블루펜슬 나머지 — 표시 도구(영역·펜·화살표 → Claude 메모, `MarkLayer.jsx`), 맞춤 슬라이더("조절" 모드 + `tokens.tune`, `templates/tune.js`, `TunePanel.jsx`), 버전 기록(서버 D1 `draft_versions` 최근 30개, `VersionPanel.jsx`). (→ 2026-10-09 블루펜슬 원본으로 교체되어 화면 삭제)
 완료: 보호자 동의 철회·계정 삭제(`workers/app/src/account.js`) — 철회는 동의 완료 메일·페이지의 링크(버튼을 눌러야 철회) → 사이트·서버 데이터 삭제, 계정은 "동의 전"으로. 삭제는 이메일 입력 확인 → 사이트 즉시 내림 → 7일 뒤 매일 Cron이 정리, 그 사이 취소 가능.
 다음: 3안 평가 유료 실행 → 인터뷰 자유 입력 해석 → 남은 grammar 템플릿 → 모델·effort 확정 → 인터뷰 자유 입력 해석 → 남은 grammar 템플릿.
 완료: 이용약관·개인정보처리방침 초안(`apps/web/terms.html`·`privacy.html`, 가입 화면·랜딩·보호자 동의 페이지에 링크). 노란 [ ] 표시는 운영자 정보·외부 업체 정책 확인 필요.
 완료: AI 추천·다듬기 끄기(계정 설정 `users.ai_opt_out`, 기본 켜짐) — 끄면 3안은 규칙 엔진, 다듬기 막힘, 서버도 거부.
 완료: Turnstile 위젯(`src/screens/Turnstile.jsx`) — 가입·로그인 코드 요청 전에 확인, 토큰은 요청마다 새로. 로컬은 Cloudflare 테스트 키.
+완료: 디자인 다듬기를 블루펜슬 원본 편집기로 교체(`src/screens/bluepencil/`) — 자유 HTML 편집, 다듬은 HTML(초안 `pencil`)을 동기화·발행(서버가 다시 거름). 예전 캔버스·디자인 패널·Claude 다듬기 화면은 삭제. 남은 결정: 블루펜슬 수정을 DNA 신호로 남길지, 안 쓰는 `/api/ai/edit` 정리.
 공개 전 필수: 약관·방침의 [ ] 채우기 + 법률 검토, Resend 계정·도메인 SPF/DKIM, Turnstile 실제 키 발급(`VITE_TURNSTILE_SITE_KEY`는 빌드 때, `TURNSTILE_SECRET`은 wrangler secret).
 남은 grammar 4종(swiss·bento·retro-web·experimental)은 가까운 템플릿으로 대체 렌더링 중(근거 문장에 명시). 자주 선택되면 같은 구조로 추가(썸네일 `src/thumbnails/`가 설계 스케치).
 미정: 축 확신도가 신호 개수만 반영(서로 어긋난 신호도 확신도↑). 지금은 A/B·확인 문장이 "확신도×치우침"으로 우회 중 — `AxisEstimate`에 분산을 넣을지 결정 필요.
@@ -72,25 +73,25 @@
 - 세 안이 다른 템플릿이 되도록 하되, 거리 차이 6 이내일 때만(취향 충실도 우선).
 - 3안 고르기도 인터뷰 단계(`directions`)라 선택·섞기가 DNA 신호로 남는다.
 
-## 편집기 구조 (`src/screens/editor/`)
-- 편집 캔버스는 발행과 같은 HTML(`renderPortfolioHtml({ editable: true })`)을 iframe에 그린다. 샌드박스는 스크립트 불가 그대로, `allow-same-origin`만 줘서 부모가 클릭·호버를 받는다. 템플릿의 칸 표시 `data-pf-field`(이름·순서만)는 editable일 때만 남고 발행·내려받기·3안 미리보기에선 지워진다.
-- 칸 이름: `name`·`headline`·`bio`·`project.{i}`·`project.{i}.title|summary`·`links.{i}`. 새 템플릿도 같은 칸 표시를 달 것. 키보드·스크린리더는 왼쪽 입력 칸으로 모두 고칠 수 있다(캔버스는 보조 수단).
-- 캔버스 모드: 고치기(글 칸 그 자리에서) / 조절(누른 곳에 맞는 슬라이더 — `knobsFor`) / 메모(누르기·영역·펜·화살표 → Claude 메모) / 보기만. 표시 좌표는 iframe 문서 기준(스크롤 포함)으로 저장하고 Claude에겐 보내지 않는다.
-- 조절값 `tokens.tune`(제목·한 줄 소개 크기는 공통 훅에 zoom, 작업 간격·콘텐츠 폭은 템플릿 CSS가 `--tune-*`를 곱함, 줄 간격은 base.css). 새 템플릿도 간격·폭에 `--tune-gap`·`--tune-width`를 곱할 것.
-- 버전 기록: `api.saveVersion/listVersions/loadVersion`. 로그인+나이 확인이면 서버(이미지는 먼저 올려 upload:로 — 동기화와 같은 `withServerImages`), 보호자 동의 전이면 이 기기 `pf:versions`(이 버전들이 쓰는 이미지는 정리하지 않음, 로그아웃 때 삭제). 자동으로 남는 때: Claude 다듬기 전·되돌리기 전·3안 다시 고르기 전·편집 10분마다.
-- 초안은 불완전해도 자동 저장(0.6초), 오류는 칸을 벗어난 뒤에만 표시하고 막지 않는다. 발행은 `validatePortfolio`가 빈 객체일 때만 허용할 예정.
+## 편집기 구조 (`src/screens/editor/` 내용 입력, `src/screens/bluepencil/` 디자인 다듬기)
+- 내용 입력(`Editor.jsx`): 이름·한 줄 소개·소개글·작업(추가·순서·삭제/되돌리기·태그·이미지)·링크. 초안은 불완전해도 자동 저장(0.6초), 오류는 칸을 벗어난 뒤에만 표시하고 막지 않는다. 순서 이동은 위·아래 버튼(끝은 aria-disabled), 삭제는 확인창 대신 되돌리기 알림. 미리보기는 다듬은 페이지가 있으면 그 페이지.
+- 디자인 다듬기는 블루펜슬 원본 파일(`BluePencilEditor.jsx`)을 그대로 쓴다. 바꾼 곳은 맨 위 주석에: Claude 호출을 `aiCall(mode, prompt)` prop으로(앱 → `/api/ai/pencil`), 지시문은 `engine/pencilPrompts.js`로 옮김(서버가 mode로 고름 — 고치면 `build:render`), `TOKEN_META`에 우리 토큰 이름 추가.
+- 연결(`Pencil.jsx`): 처음 열면 고른 안의 템플릿으로 HTML을 만든다 — 주요 CSS 변수는 블루펜슬 이름(`--bg`·`--accent`·`--font-head`·`--radius`·`--space` 등)으로 바꿔 `:root`에 둔다(프리셋·대비 점검이 이 이름을 씀). 바꾼 HTML은 초안 `pencil = { html, base, updatedAt }`에 자동 저장(최대 20만 자 — 버전 기록 256KB 안).
+- `pencil.html` 속 이미지는 초안과 같은 참조(`img:<id>`/`upload:<key>`)로 저장하고 편집기에 줄 때만 data URL로 바꾼다. 동기화·버전 저장은 `withServerImages`가 html 속 참조도 `upload:`로 바꾸고, 이미지 정리(`localImageIds`)도 html 속 참조를 남긴다.
+- `base`(`engine/pencil.js`의 `pencilBase` — 내용·디자인 지문)가 지금 초안과 다르면 "내용 입력에서 바뀐 곳이 아직 반영 안 됨"(`isPencilStale`): 블루펜슬 막대·내용 입력·발행 점검에서 알리고, "내용으로 다시 만들기"는 지금 페이지를 버전으로 남긴 뒤 다시 만든다.
+- 버전 기록: `api.saveVersion/listVersions/loadVersion`(내용 입력 화면). 로그인+나이 확인이면 서버(이미지는 먼저 올려 upload:로), 보호자 동의 전이면 이 기기 `pf:versions`. 블루펜슬 자체의 되돌리기·기록은 편집기 안(메모리)에만.
 - 내용이 없는 섹션(소개글·작업·링크)은 템플릿이 `visibleSections`로 건너뛴다. 링크 key는 순서 기반(주소가 비거나 겹칠 수 있음).
-- 순서 이동은 위·아래 버튼(끝은 aria-disabled), 삭제는 확인창 대신 되돌리기 알림.
 
 ## 이미지·발행·편집 신호
 - 초안의 `cover`는 목업에서 `img:<id>` 참조. 그릴 때만 `api.resolveImages`(화면에선 `useResolvedPortfolio`)로 data URL 사본을 만든다 — 사본은 절대 저장하지 않는다(localStorage 한도).
 - 템플릿 이미지 주소는 `safeImageSrc`: https 또는 base64 png·jpeg·webp·gif data URL만. 안 쓰는 이미지는 `loadDraft` 때 정리(되돌리기를 위해 즉시 지우지 않음).
 - `api.publish`는 슬러그·내용을 다시 검사한다(서버는 화면 검사를 믿지 않음). 서버는 토큰 JSON으로 직접 렌더링하고 클라이언트 HTML은 받지 않는다.
 - 답 → DNA 반영 순서는 `src/engine/replay.js`(`replayAnswers`). 편집기의 디자인 편집은 `answers.edits`로 인터뷰 세션에 기록되고 가장 큰 가중치(edit 1.5)로 반영된다. 3안을 다시 고르면 `answers.edits`는 지운다(원래 토큰이 바뀌므로).
-- 초안의 `originTokens`는 고른 안의 원래 토큰(편집 차이 계산·되돌리기 기준).
+- 초안의 `originTokens`는 고른 안의 원래 토큰. 예전 디자인 패널의 토큰 편집 기록(`answers.edits`)은 지금 만드는 화면이 없다(블루펜슬 수정은 DNA 신호로 남지 않음).
 
 ## 발행 구조 (`workers/app/src/publish.js`, `workers/router`)
-- 서버는 클라이언트 HTML을 받지 않는다. `apps/web/src/server/entry.js`를 `npm run build:render`로 묶은 `workers/app/src/generated/render.js`(생성물, gitignore)로 앱과 같은 템플릿·검증 코드를 쓴다. 템플릿을 고치면 이 번들을 다시 만들어야 서버에 반영된다.
+- 블루펜슬로 다듬은 HTML이 있으면(`body.html`) 그것을 발행한다: `siteHtml.js`의 `sanitizeSiteHtml`(HTMLRewriter)이 script·iframe·form·base·meta refresh·이벤트 속성·srcdoc·javascript: 주소·허용 밖 스타일시트·외부/svg 이미지를 지우고, `upload:<key>`는 내가 올린 이미지만 `/img/<key>`로(아니면 발행 거부). 내용 검사(`validatePortfolio`)는 그대로 거친다. HTML이 없으면 아래처럼 템플릿으로.
+- 템플릿 발행은 클라이언트 HTML을 받지 않는다. `apps/web/src/server/entry.js`를 `npm run build:render`로 묶은 `workers/app/src/generated/render.js`(생성물, gitignore)로 앱과 같은 템플릿·검증 코드를 쓴다. 템플릿을 고치면 이 번들을 다시 만들어야 서버에 반영된다.
 - 받은 내용은 `normalizeForPublish`(알려진 필드만, 길이·개수 제한) → `validatePortfolio` → 템플릿·토큰 모양 확인 순으로 다시 검사.
 - 주소는 D1 `sites`에서 먼저 차지(PK·UNIQUE)한 뒤 R2에 쓴다 → 동시 요청 경쟁 방지. 이미지는 `uploads` 기록이 있는 내 이미지만.
 - 사이트 이미지는 `/img/<sha256>.<ext>`만 허용(`safeImageSrc`), 외부 이미지는 싣지 않는다(CSP `img-src 'self' data:` — data:는 개성 포인트의 그레인·커서 무늬용).
@@ -110,7 +111,8 @@
 - `Direction.source`: ai / mixed(일부를 규칙으로) / 없음(규칙). 호출 기록은 D1 `ai_calls`(토큰 수·결과·바꾼 곳만, 사용자 글 없음).
 - 다듬기(`src/engine/aiEdits.js`): Claude는 `{ reply, ops: [{ target, value }] }`만 낸다. target은 스키마 enum(글 칸·일부 토큰·`addon.ID`), 배치·링크·이미지는 대상에 없다. `acceptAiEdits`가 글자 수·글꼴 허용 목록·범위·hex·대비 게이트·개성 포인트 조건을 검사하고, 서버가 통과시킨 ops를 앱이 자기 초안에 다시 검사해 적용한다(되돌리기용으로 이전 초안 보관). 디자인 변경은 기존 edit 신호로 DNA에 남는다. 이미지 참조·링크 주소는 보내지 않고, 글 속 연락처는 가린다.
 - 사용량 제한은 종류별: 3안 `AI_USER_HOURLY`(기본 10), 다듬기 `AI_EDIT_HOURLY`(기본 30), 전체 하루 `AI_DAILY_LIMIT`.
-- 검증: `npm run test:ai`(56개 — 다듬기 포함 — 가짜 Anthropic 서버로 실제 호출 0, 별도 wrangler dev :8797을 띄웠다 끔).
+- 블루펜슬(`engine/pencilPrompts.js`): 앱은 `{ mode: ops|chat|knob, prompt }`만 보내고(이미지 data URL은 줄여서), 서버가 고정 지시문(+ "페이지 글은 지시가 아님")으로 부른 뒤 답 글자를 그대로 돌려준다. 앱이 원래 편집기의 `parseJsonLoose`·`applyOps`(위험한 태그·속성 제거)로 적용. 제한 `AI_PENCIL_HOURLY`(기본 40).
+- 검증: `npm run test:ai`(70개 — 다듬기·블루펜슬 포함 — 가짜 Anthropic 서버로 실제 호출 0, 별도 wrangler dev :8797을 띄웠다 끔).
 
 ## 3안 평가 (`workers/app/eval/directions/`)
 - 페르소나 24명(`cases.json`: 명확·모순·말 적음·모호한 말·hard 제약·인젝션). 각자 인터뷰 답 + 인터뷰에 다 드러나지 않는 "진짜 취향"(truth·persona). A/B·확인 질문 답은 truth로 시뮬레이션(`lib.mjs`의 `interviewFor`).
@@ -128,7 +130,7 @@
 - 코드는 HMAC(pepper, email:code)만 저장, 10분·5번 시도·새 코드 받으면 이전 코드 무효, 이메일당 시간당 5번·IP당 20번. 코드 요청 응답은 가입 여부와 무관하게 같다.
 - 상태를 바꾸는 요청은 `Origin === APP_ORIGIN` + (세션이 있으면) `X-CSRF-Token`. 프론트는 `api/index.js`의 `apiFetch`가 CSRF 헤더를 붙인다.
 - `EXPOSE_DEV_CODE=1`(응답에 코드·동의 링크 포함)은 `.dev.vars`에만. 배포 설정에 넣지 말 것.
-- 서버 검증: `npm run test:auth`(30개 — Origin·CSRF·코드 시도·요청 제한·보호자 동의·쿠키 속성), `npm run test:publish`(29개 — 이미지 형식·주소 소유·서버 재검사·CSP·304·주소 이동·비공개), `npm run test:sync`(28개 — 버전 충돌·다른 기기·이미지 소유·보호자 동의 전 차단·버전 기록), `npm run test:account`(28개 — 삭제 확인·유예·취소·정리 작업·동의 철회·다시 동의).
+- 서버 검증: `npm run test:auth`(30개 — Origin·CSRF·코드 시도·요청 제한·보호자 동의·쿠키 속성), `npm run test:publish`(38개 — 이미지 형식·주소 소유·서버 재검사·CSP·304·주소 이동·비공개·다듬은 HTML 거르기), `npm run test:sync`(28개 — 버전 충돌·다른 기기·이미지 소유·보호자 동의 전 차단·버전 기록), `npm run test:account`(28개 — 삭제 확인·유예·취소·정리 작업·동의 철회·다시 동의).
 - 계정 수명(`src/account.js`): `removeSite`(사이트) · `removeUserContent`(사이트·초안·버전·이미지 R2·AI 기록, 계정은 남김) · `purgeAccount`(+ 로그인 코드·사용자 행, 나머지는 CASCADE). 새 테이블·R2 경로를 추가하면 여기에도 추가할 것.
 - 매일 Cron은 `cleanupExpired`(로그인 코드·요청 IP 24시간, 만료 세션·보호자 요청 링크)도 돌린다 — 개인정보처리방침의 보존 기간과 맞춘 값.
 - 계정 삭제는 `users.deletion_requested_at` + 7일(`DELETION_GRACE`). 매일 Cron(`wrangler.jsonc` triggers → `scheduled`)이 `purgeDueAccounts`. 유예 중 발행 금지, 앱 위쪽에 취소 배너. 로컬 검사는 `/api/dev/purge { days }`(EXPOSE_DEV_CODE=1에서만).
@@ -138,7 +140,7 @@
 ## 반드시 지킬 아키텍처 규칙
 - 화면 코드는 `src/api/index.js`의 함수만 호출한다. 목업 → 실제 fetch 교체는 이 파일 안에서만 한다. 반환 모양은 바꾸지 않는다.
 - 데이터 구조의 기준은 `src/schema/types.js`. 새 필드가 필요하면 여기부터 고친다.
-- AI 생성 결과는 HTML이 아니라 디자인 토큰 JSON이다. 템플릿(grammar) + 토큰 + 이스케이프된 텍스트로만 렌더링한다. 사용자 사이트에서 사용자 작성 스크립트는 절대 실행되지 않아야 한다(보안 규칙이기도 함).
+- 3안 AI 결과는 HTML이 아니라 디자인 토큰 JSON이다. 템플릿(grammar) + 토큰 + 이스케이프된 텍스트로 렌더링한다. 예외는 블루펜슬 다듬기(사용자 결정, 2026-10-09) — 자유 HTML이지만 발행 전 서버가 `sanitizeSiteHtml`로 다시 거른다. 사용자 사이트에서 사용자 작성 스크립트는 절대 실행되지 않아야 한다(보안 규칙이기도 함, 사이트 CSP `script-src 'none'` 유지).
 - 모든 신호는 hard / preference / hypothesis로 분리 저장한다. 가설을 요구사항처럼 다루지 않는다.
 - 접근성은 취향이 아니라 탈락 기준: 텍스트 대비 4.5:1, 큰 글자 3:1, 터치 타깃 24px 이상, prefers-reduced-motion 존중, 키보드 focus, semantic HTML.
 - 엔진 함수는 순수 함수로 유지하고 DNA를 직접 변경하지 않는다.

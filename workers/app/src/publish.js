@@ -1,6 +1,7 @@
 /**
  * 실제 발행: 서버가 토큰 JSON + 앱과 같은 템플릿으로 직접 HTML을 만들어 R2 sites/{주소}/ 에 쓴다.
- * 클라이언트가 만든 HTML은 받지 않는다. 받은 내용은 normalizeForPublish로 정리하고 validatePortfolio로 다시 검사.
+ * 블루펜슬로 다듬은 HTML(body.html)이 오면 그것을 쓰되 sanitizeSiteHtml로 걸러서(스크립트·이벤트 속성·외부 주소 제거) 쓴다.
+ * 어느 경우든 내용은 normalizeForPublish로 정리하고 validatePortfolio로 다시 검사(발행 전 점검과 같은 기준).
  * 이미지는 먼저 /api/images로 올리고(형식은 파일 앞 바이트로 확인), 발행 때 사이트 폴더로 복사한다.
  */
 import { removeSite } from "./account.js";
@@ -10,9 +11,11 @@ import {
 import { getSession, requireSession } from "./auth.js";
 import { json, fail, readJson } from "./lib/http.js";
 import { sha256Bytes } from "./lib/crypto.js";
+import { sanitizeSiteHtml, UPLOAD_REF } from "./siteHtml.js";
 
 const MAX_IMAGE = 3 * 1024 * 1024;  // 브라우저에서 줄여 오므로 넉넉한 상한
 const MAX_UPLOADS = 100;            // 계정당 올려 둘 수 있는 이미지 수
+const MAX_SITE_HTML = 400 * 1024;   // 블루펜슬 HTML (앱은 200,000자에서 저장을 멈춘다)
 const KEY_RE = /^[a-f0-9]{64}\.(?:webp|jpg|png|gif)$/;
 const TYPES = { webp: "image/webp", jpg: "image/jpeg", png: "image/png", gif: "image/gif" };
 
@@ -83,14 +86,14 @@ export async function mySite(request, env) {
   return json({ ok: true, site: row ? { slug: row.slug, url: siteUrl(env, row.slug), publishedAt: row.published_at, updatedAt: row.updated_at } : null });
 }
 
-// POST /api/publish { slug, portfolio }
+// POST /api/publish { slug, portfolio, html? }
 export async function publish(request, env) {
   const { session, error } = await requireSession(request, env);
   if (error) return error;
   const user = session.user;
   if (!canPublish(user)) return fail(403, "나이 확인(보호자 동의)이 끝나야 발행할 수 있어요.");
   if (user.deletion_requested_at) return fail(403, "삭제 예정인 계정은 발행할 수 없어요. 삭제를 취소하면 다시 발행할 수 있어요.");
-  const body = await readJson(request, 256 * 1024);
+  const body = await readJson(request, 256 * 1024 + MAX_SITE_HTML * 2);
   if (!body) return fail(400, "보낸 내용을 읽지 못했어요.");
 
   const slug = typeof body.slug === "string" ? body.slug.trim().toLowerCase() : "";
@@ -102,23 +105,32 @@ export async function publish(request, env) {
   if (Object.keys(validatePortfolio(p)).length) return fail(400, "고칠 곳이 남아 있어요.");
 
   // 이미지: 올려 둔 것만 사이트 이미지로. 다른 주소(외부 이미지)는 싣지 않는다 — 사이트 CSP는 img-src 'self'
+  const pencil = typeof body.html === "string" && body.html.trim() ? body.html : null;
+  if (pencil && pencil.length > MAX_SITE_HTML) return fail(413, "다듬은 페이지가 너무 커요. 덧붙인 요소를 조금 줄여 주세요.");
   const images = [];
-  for (const proj of p.projects) {
-    const key = proj.cover?.startsWith("upload:") ? proj.cover.slice(7) : null;
-    if (key && KEY_RE.test(key)) {
-      images.push(key);
-      proj.cover = `/img/${key}`;
-    } else {
-      proj.cover = null;
+  if (pencil) {
+    for (const m of pencil.matchAll(UPLOAD_REF)) if (!images.includes(m[1])) images.push(m[1]);
+  } else {
+    for (const proj of p.projects) {
+      const key = proj.cover?.startsWith("upload:") ? proj.cover.slice(7) : null;
+      if (key && KEY_RE.test(key)) {
+        images.push(key);
+        proj.cover = `/img/${key}`;
+      } else {
+        proj.cover = null;
+      }
     }
   }
+  if (images.length > MAX_UPLOADS) return fail(400, "이미지가 너무 많아요.");
   for (const key of images) {
     const ok = await env.DB.prepare("SELECT 1 AS x FROM uploads WHERE user_id = ? AND key = ?").bind(user.id, key).first();
     if (!ok) return fail(400, "이미지를 다시 올려 주세요.");
   }
 
   // 렌더링은 주소를 차지하기 전에 (실패해도 주소가 묶이지 않게)
-  const html = renderPortfolioHtml({ portfolio: p, tokens: p.tokens, template: p.template });
+  const html = pencil
+    ? await sanitizeSiteHtml(pencil, new Set(images))
+    : renderPortfolioHtml({ portfolio: p, tokens: p.tokens, template: p.template });
 
   // 주소 차지: 기본 키·UNIQUE 제약이 동시 요청 경쟁을 막는다
   const now = Date.now();
