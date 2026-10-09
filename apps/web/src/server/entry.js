@@ -13,3 +13,6 @@ export { normalizeDna, buildSystemPrompt, buildDirectionsRequest, readDirections
 
 // Claude로 다듬기 (편집기 메모·대화)
 export { normalizeEditRequest, buildEditSystemPrompt, buildEditRequest, acceptAiEdits } from "../engine/aiEdits.js";
+
+// 블루펜슬 편집기 (지시문은 서버가 mode로 고름)
+export { normalizePencilRequest, buildPencilRequest, readPencilResponse } from "../engine/pencilPrompts.js";

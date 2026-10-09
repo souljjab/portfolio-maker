@@ -66,6 +66,19 @@ export async function requestAiEdit({ portfolio, notes, message }) {
   return apiFetch("/api/ai/edit", { method: "POST", body: { portfolio: slim, notes, message } });
 }
 
+/**
+ * 블루펜슬 편집기의 Claude 호출. 지시문은 서버가 mode(ops·chat·knob)로 고르고, 앱은 페이지 요약만 보낸다.
+ * 페이지 요약에 이미지 data URL이 들어가지 않게 이미지 주소는 줄여서 보낸다.
+ * @param {"ops"|"chat"|"knob"} mode
+ * @returns {Promise<{ ok: true, text: string } | { ok: false, reason: string }>}
+ */
+export async function requestPencilAi(mode, prompt) {
+  if (!ACTIVE.includes(syncStatus.state)) return { ok: false, reason: "나이 확인(보호자 동의)이 끝나면 Claude에게 부탁할 수 있어요." };
+  if (currentUser?.aiEnabled === false) return { ok: false, reason: "AI를 꺼 두셨어요. 앱 위쪽 “계정”에서 켤 수 있어요." };
+  const slim = String(prompt).replace(/data:image\/[a-z+]+;base64,[A-Za-z0-9+/=]+/g, "data:image(생략)");
+  return apiFetch("/api/ai/pencil", { method: "POST", body: { mode, prompt: slim } });
+}
+
 /** 인터뷰 세션 불러오기. 없거나 형식이 다르면 새 세션 */
 export async function loadInterview() {
   if (USE_MOCK) {
@@ -150,6 +163,21 @@ export async function resolveImages(portfolio) {
   return { ...portfolio, projects };
 }
 
+/**
+ * 이미지 참조 목록 → 그릴 수 있는 주소 (블루펜슬 HTML 속 이미지용). 못 찾은 것은 null.
+ * @param {string[]} refs  img:<id> / upload:<key>
+ * @returns {Promise<Record<string, string|null>>}
+ */
+export async function resolveImageRefs(refs) {
+  const out = {};
+  for (const r of new Set(refs)) {
+    out[r] = r.startsWith(IMG_PREFIX) ? await images.dataUrlFor(r.slice(IMG_PREFIX.length)).catch(() => null)
+      : r.startsWith(UPLOAD_PREFIX) ? await serverImageUrl(r.slice(UPLOAD_PREFIX.length))
+      : null;
+  }
+  return out;
+}
+
 /** 서버에 올린 이미지(upload:<key>): 이 기기에 캐시가 없으면 받아서 캐시(srv-<key>) */
 async function serverImageUrl(key) {
   const cacheId = `srv-${key}`;
@@ -167,7 +195,9 @@ async function serverImageUrl(key) {
 
 /** 초안이 쓰는 이 기기의 이미지 저장소 id (정리할 때 남길 것) */
 function localImageIds(draft) {
-  return draft.projects.map((p) => p.cover).flatMap((c) => (
+  // 블루펜슬 HTML이 쓰는 이미지도 (작업에서 이미지를 빼도 다듬은 페이지엔 남아 있을 수 있다)
+  const inPencil = draft.pencil?.html?.match(/(?:img|upload):[0-9a-f.\-a-z]+/g) ?? [];
+  return [...draft.projects.map((p) => p.cover), ...inPencil].flatMap((c) => (
     c?.startsWith(IMG_PREFIX) ? [c.slice(IMG_PREFIX.length)] : c?.startsWith(UPLOAD_PREFIX) ? [`srv-${c.slice(UPLOAD_PREFIX.length)}`] : []
   ));
 }
@@ -305,7 +335,8 @@ export async function logout({ force = false } = {}) {
 
 /**
  * 발행: 로컬 이미지를 먼저 올리고(서버가 형식 확인), 내용 JSON을 보낸다.
- * 서버가 앱과 같은 템플릿으로 직접 HTML을 만들어 공개한다 — 클라이언트 HTML은 보내지 않는다.
+ * 서버가 앱과 같은 템플릿으로 직접 HTML을 만들어 공개한다. 블루펜슬로 다듬은 HTML(portfolio.pencil)이 있으면
+ * 그 HTML을 보내고, 서버가 스크립트·이벤트 속성·외부 주소를 걸러 공개한다(사이트 CSP는 script-src 'none').
  * @returns {Promise<{ ok: true, url: string, publishedAt: number } | { ok: false, reason: string }>}
  */
 export async function publish(portfolio, slug) {
@@ -332,7 +363,12 @@ export async function publish(portfolio, slug) {
     projects.push({ ...p, cover });
   }
 
-  const r = await apiFetch("/api/publish", { method: "POST", body: { slug: slug.trim().toLowerCase(), portfolio: { ...portfolio, projects } } });
+  // 블루펜슬에서 다듬은 HTML이 있으면 그것을 발행한다(서버가 다시 거름). 이미지 참조는 위에서 올린 것으로 바꿔 보낸다
+  const sent = Object.fromEntries(portfolio.projects.map((p, i) => [p.cover, projects[i].cover]));
+  const html = portfolio.pencil?.html
+    ? portfolio.pencil.html.replace(/img:[0-9a-f-]{36}/g, (m) => sent[m] ?? "")
+    : null;
+  const r = await apiFetch("/api/publish", { method: "POST", body: { slug: slug.trim().toLowerCase(), portfolio: { ...portfolio, projects, pencil: undefined }, html } });
   if (!r.ok) return r;
   await saveDraft({ ...portfolio, slug: slug.trim().toLowerCase(), status: "published", publishedAt: r.publishedAt });
   return r;
@@ -507,7 +543,14 @@ async function withServerImages(draft, uploadedIn) {
     }
     projects.push({ ...p, cover: `${UPLOAD_PREFIX}${uploaded[id]}` });
   }
-  return { ok: true, portfolio: { ...draft, projects }, uploaded };
+  return { ok: true, portfolio: { ...draft, projects, pencil: withUploadRefs(draft.pencil, uploaded) }, uploaded };
+}
+
+/** 블루펜슬 HTML 속 이미지 참조(img:<id>)도 같은 기록으로 upload:<key>로 바꾼 사본 (올리지 못한 이미지는 빈 자리) */
+function withUploadRefs(pencil, uploaded) {
+  if (!pencil?.html) return pencil;
+  const html = pencil.html.replace(/img:([0-9a-f-]{36})/g, (m, id) => (uploaded[id] ? `${UPLOAD_PREFIX}${uploaded[id]}` : m));
+  return { ...pencil, html };
 }
 
 async function push(baseVersion) {

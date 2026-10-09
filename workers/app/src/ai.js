@@ -1,7 +1,9 @@
 /**
  * Claude 호출 두 가지. 공통: 로그인 + 나이 확인(보호자 동의)이 끝난 계정만, 사용량 제한, 호출 기록(사용자 글·출력은 저장 안 함).
  * - POST /api/ai/directions { dna } — 3안. 실패하면 ok:false, 앱은 조용히 규칙 엔진 결과를 쓴다.
- * - POST /api/ai/edit { portfolio, notes, message } — 편집기에서 메모·대화로 다듬기. 변경 목록(ops)만 돌려준다.
+ * - POST /api/ai/edit { portfolio, notes, message } — (예전 편집기) 메모·대화로 다듬기. 변경 목록(ops)만 돌려준다.
+ * - POST /api/ai/pencil { mode, prompt } — 블루펜슬 편집기. 지시문은 mode로 서버가 고르고, 답 글자를 그대로 돌려준다
+ *   (앱이 applyOps로 위험한 태그·속성을 빼고 적용, 발행 때 서버가 HTML을 다시 거름).
  * 받은 입력은 normalize* 로 다시 만들고, Claude 출력은 accept* (규칙 엔진·대비 게이트)가 검사한다.
  */
 import Anthropic from "@anthropic-ai/sdk";
@@ -10,7 +12,7 @@ import { json, fail, readJson } from "./lib/http.js";
 import {
   normalizeDna, buildSystemPrompt, buildDirectionsRequest, readDirectionsResponse, acceptAiDirections, TEMPLATE_IDS,
   normalizeEditRequest, buildEditSystemPrompt, buildEditRequest, acceptAiEdits, normalizeForPublish, tokensShapeOk,
-  DEFAULT_MODEL, DEFAULT_EFFORT,
+  DEFAULT_MODEL, DEFAULT_EFFORT, normalizePencilRequest, buildPencilRequest, readPencilResponse,
 } from "./generated/render.js";
 
 const HOUR = 3_600_000, DAY = 24 * HOUR;
@@ -20,8 +22,9 @@ const SYSTEM = { directions: buildSystemPrompt(TEMPLATE_IDS), edit: buildEditSys
 
 /**
  * 공통 흐름: 검사 → 제한 → 기록 시작 → 호출 → 응답 읽기. 성공하면 { raw, record }, 실패면 { error }.
- * @param {{ kind: "directions"|"edit", bodyLimit: number, parse: (body) => any, build: (input, system, opts) => object,
- *           hourly: number, text: { limited: string, busy: string, down: string, refused: string, invalid: string } }} spec
+ * @param {{ kind: "directions"|"edit"|"pencil", bodyLimit: number, parse: (body) => any, build: (input, system, opts) => object,
+ *           read?: (res) => { raw, failure, detail? }, hourly: number,
+ *           text: { limited: string, busy: string, down: string, refused: string, invalid: string } }} spec
  */
 async function callClaude(request, env, spec) {
   const { session, error } = await requireSession(request, env);
@@ -70,7 +73,7 @@ async function callClaude(request, env, spec) {
     cache_read_tokens: res.usage?.cache_read_input_tokens ?? null,
     cache_write_tokens: res.usage?.cache_creation_input_tokens ?? null,
   };
-  const { raw, failure, detail } = readDirectionsResponse(res);
+  const { raw, failure, detail } = (spec.read ?? readDirectionsResponse)(res);
   if (failure) {
     await record({ ...usage, outcome: failure, issues: JSON.stringify([detail]) });
     return { error: fail(502, failure === "refused" ? spec.text.refused : spec.text.invalid) };
@@ -117,4 +120,23 @@ export async function aiEdit(request, env) {
   const { reply, ops, skipped } = acceptAiEdits(r.raw, draft);
   await r.record({ outcome: skipped.length ? "partial" : "ok", issues: skipped.length ? JSON.stringify(skipped.map((s) => `${s.target}: ${s.reason}`)) : null });
   return json({ ok: true, reply, ops });
+}
+
+export async function aiPencil(request, env) {
+  const r = await callClaude(request, env, {
+    kind: "pencil", bodyLimit: 64 * 1024, hourly: Number(env.AI_PENCIL_HOURLY) || 40,
+    parse: normalizePencilRequest,
+    build: (input, _system, opts) => buildPencilRequest(input, opts),
+    read: readPencilResponse,
+    text: {
+      limited: "한 시간에 부탁할 수 있는 횟수를 다 썼어요. 잠시 뒤에 다시 해 주세요.",
+      busy: "오늘은 AI 사용량이 많아요. 내일 다시 부탁해 주세요.",
+      down: "AI가 지금 응답하지 않아요. 잠시 뒤 다시 해 주세요.",
+      refused: "AI가 이 부탁을 처리하지 않았어요. 표현을 바꿔 다시 해 보세요.",
+      invalid: "AI 답을 읽지 못했어요. 요청을 더 작게 나눠 다시 해 주세요.",
+    },
+  });
+  if (r.error) return r.error;
+  await r.record({ outcome: "ok" });
+  return json({ ok: true, text: r.raw });
 }
